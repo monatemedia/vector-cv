@@ -27,37 +27,71 @@ def generate_embedding(text: str) -> List[float]:
             vector.append((hash_bytes[i % len(hash_bytes)] / 255.0) * 2 - 1)
         return vector
 
-def analyze_skills_gap(candidate_chunks: List[Dict], job_description: str) -> Dict:
-    """Identify skills gaps with technical precision"""
-    chunks_text = "\n\n".join([
-        f"**{chunk['title']} at {chunk['company']}**\n{chunk['content']}\nSkills: {', '.join(chunk['metadata_tags'])}"  
-        for chunk in candidate_chunks
-    ])
-
-    prompt = f"""You are a Technical Lead analyzing a candidate for a role.
-
-    CANDIDATE EXPERIENCE:
-    {chunks_text}
-
-    JOB DESCRIPTION:
+def extract_skills_from_job(job_description: str) -> List[str]:
+    """Extract technical skills and technologies from job description"""
+    prompt = f"""Extract ONLY the technical skills, technologies, tools, and frameworks from this job description.
+    
+    Be specific and include:
+    - Programming languages (PHP, Python, JavaScript, etc.)
+    - Frameworks (Laravel, React, Vue, Django, etc.)
+    - Databases (MySQL, PostgreSQL, Redis, etc.)
+    - Tools (Docker, Git, Nginx, etc.)
+    - Cloud platforms (AWS, Azure, etc.)
+    - Methodologies (CI/CD, DevOps, etc.)
+    
+    Return ONLY a JSON object with a "skills" array of strings.
+    
+    Job Description:
     {job_description}
-
-    Analyze the skills gap. Be specific about versions and ecosystems (e.g., 'Laravel' vs 'PHP').
-    Return ONLY valid JSON:
-    {{
-        "missing_skills": [],
-        "matching_skills": [],
-        "partial_matches": [],
-        "recommendations": []
-    }}"""
-
+    
+    Example output format:
+    {{"skills": ["React", "Docker", "PostgreSQL", "AWS", "Laravel"]}}
+    """
+    
     try:
         response = client.chat.completions.create(
             model="gpt-4-turbo-preview",
-            messages=[{"role": "system", "content": "You are a technical recruiter who values data over fluff."},       
+            messages=[{"role": "user", "content": prompt}],
+            temperature=0.1,
+            response_format={"type": "json_object"}
+        )
+        result = json.loads(response.choices[0].message.content)
+        return result.get("skills", [])
+    except Exception as e:
+        print(f"Error extracting skills: {e}")
+        return []
+
+def analyze_skills_gap(candidate_chunks: List[Dict], job_description: str) -> Dict:
+    """Identify skills gaps with technical precision"""
+    chunks_text = "\n\n".join([
+        f"**{chunk['title']} at {chunk['company']}**\n{chunk['content']}\nSkills: {', '.join(chunk['metadata_tags'])}"
+        for chunk in candidate_chunks
+    ])
+    
+    prompt = f"""You are a Technical Lead analyzing a candidate for a role.
+
+CANDIDATE EXPERIENCE:
+{chunks_text}
+
+JOB DESCRIPTION:
+{job_description}
+
+Analyze the skills gap. Be specific about versions and ecosystems (e.g., 'Laravel' vs 'PHP').
+Return ONLY valid JSON:
+{{
+    "missing_skills": [],
+    "matching_skills": [],
+    "partial_matches": [],
+    "recommendations": []
+}}"""
+    
+    try:
+        response = client.chat.completions.create(
+            model="gpt-4-turbo-preview",
+            messages=[{"role": "system", "content": "You are a technical recruiter who values data over fluff."},
                       {"role": "user", "content": prompt}],
             temperature=0.2,
-            response_format={ "type": "json_object" }
+            response_format={"type": "json_object"}
         )
         return json.loads(response.choices[0].message.content)
     except Exception as e:
@@ -69,14 +103,14 @@ def generate_tailored_cv(
     job_description: str,
     style_guidelines: List[Dict] = None) -> str:
     """Generate a tailored CV matching Edward's exact style and voice"""
-
+    
     chunks_text = "\n\n".join([
         f"BLOCK: {chunk['title']} at {chunk['company']}\nCONTENT: {chunk['content']}\nTAGS: {', '.join(chunk['metadata_tags'])}"
         for chunk in relevant_chunks
     ])
-
+    
     guidelines_text = "\n".join([f"- {g['name']}: {g['description']}" for g in (style_guidelines or [])])
-
+    
     system_prompt = """You are Edward Baitsewe's CV writer. Your job is to mimic his EXACT writing style and formatting.
 
 CRITICAL ANTI-FABRICATION RULES:
@@ -93,7 +127,7 @@ EDWARD'S CV STYLE FINGERPRINT:
 - Bullet points start with "* " not "- "
 - Section headers: "## 🔹 Section Name"
 - Uses developer-centric language: "Engineered", "Implemented", "Integrated" (NOT "Spearheaded", "Championed", "Leveraging")
-- Includes demo credentials when relevant (see example below)
+- Includes demo credentials when relevant
 - CONCISE: One line per bullet when possible, no wordy expansions
 
 FORBIDDEN PHRASES (NEVER USE THESE):
@@ -166,9 +200,6 @@ GOOD: "Implemented a zero-downtime **Blue/Green deployment** strategy via GitHub
 BAD: "Optimized image processing to enhance application performance"
 GOOD: "Achieved ~77× image compression (1.7MB to 22KB WebP)"
 
-BAD: "Developed a microservice showcasing ability to bridge polyglot environments"
-GOOD: "Developed a **Python/Flask** microservice, bridging polyglot environments (PHP/Python)"
-
 SUMMARY TAILORING RULE:
 The summary should be MOSTLY fixed but with ONE sentence tailored to the job. Structure:
 - Sentence 1: Years of experience + core tech (always the same)
@@ -178,7 +209,7 @@ The summary should be MOSTLY fixed but with ONE sentence tailored to the job. St
 Example for a Laravel/Marketplace role:
 "Full stack developer with 5 years of experience building and deploying scalable webapps. Expert in the **Laravel** ecosystem with a deep focus on search optimization, geospatial data, and CI/CD automation. Former financial advisor with over a decade track record of high-stakes stakeholder management and client service excellence."
 """
-
+    
     user_prompt = f"""
 CANDIDATE DATA:
 Name: {personal_info.get('name')}
@@ -201,21 +232,15 @@ STYLE GUIDELINES:
 
 CRITICAL INSTRUCTIONS:
 1. Include ALL contact links in the header (LinkedIn, Portfolio, GitHub) - DO NOT OMIT THE PORTFOLIO URL
-2. In the Summary, identify the 1-2 most relevant aspects of the job and highlight those specific skills (e.g., "geospatial data" for a location-based role)
+2. In the Summary, identify the 1-2 most relevant aspects of the job and highlight those specific skills
 3. For each project, use the EXACT formatting from the source blocks - don't expand or reword
 4. If a source block includes GitHub links or demo credentials, INCLUDE THEM VERBATIM
 5. Keep bullet points CONCISE - one line when possible
 6. NO PASSIVE VOICE - use direct action verbs
 7. Extract education from the "Education & Certifications" block if present
-
-EXAMPLE OF CORRECT VinScape FORMATTING:
-**VinScape – VIN Decoder Microservice** | [GitHub](https://github.com/monatemedia/vinscape)
-
-* Developed a specialized **Python/Flask** microservice for vehicle data enrichment, showcasing the ability to bridge polyglot environments (PHP/Python) to solve specific business logic needs.
-
-(Note: One bullet, concise, includes GitHub link, uses exact wording from source)
+8. Prioritize projects by relevance to this specific job
 """
-
+    
     try:
         response = client.chat.completions.create(
             model="gpt-4-turbo-preview",
@@ -223,7 +248,7 @@ EXAMPLE OF CORRECT VinScape FORMATTING:
                 {"role": "system", "content": system_prompt},
                 {"role": "user", "content": user_prompt}
             ],
-            temperature=0.2  # Very low for maximum consistency
+            temperature=0.2
         )
         return response.choices[0].message.content
     except Exception as e:
@@ -236,12 +261,12 @@ def generate_cover_letter(
     company_name: str,
     job_title: str) -> str:
     """Generate a cover letter using Edward's 'DNA matching' strategy"""
-
+    
     chunks_text = "\n\n".join([
         f"PROJECT: {chunk['title']}\nDETAILS: {chunk['content']}"
         for chunk in relevant_chunks[:3]
     ])
-
+    
     system_prompt = """You are Edward Baitsewe's cover letter writer. Your job is to use his "DNA MATCHING" strategy.
 
 EDWARD'S COVER LETTER VOICE:
@@ -272,13 +297,13 @@ Dear [Name],
 
 [DNA MATCH - Show how YOUR specific project shares technical DNA with THEIR challenges. Be concrete.]
 
-[BONUS SKILLS - Address "Bonus" requirements from job description with specific examples from your experience]
+[BONUS SKILLS - Address "Bonus" requirements from job description with specific examples]
 
-[PROFESSIONAL MATURITY - One paragraph on the financial background as a differentiator for soft skills]
+[PROFESSIONAL MATURITY - One paragraph on the financial background as a differentiator]
 
-[FORWARD-LOOKING - Show excitement about specific tech initiatives they mentioned (AI/ML, new products, etc.)]
+[FORWARD-LOOKING - Show excitement about specific tech initiatives they mentioned]
 
-Thank you for your time and for considering my application. I look forward to discussing how my experience with [specific tech] and [specific domain] can contribute to [Company]'s continued success.
+Thank you for your time and for considering my application. I look forward to discussing how my experience with [specific tech] can contribute to [Company]'s continued success.
 
 Best regards,
 
@@ -286,36 +311,8 @@ Edward Baitsewe
 +27 78 324 5326
 edward@monatemedia.com
 ```
-
-HOOK EXAMPLES (Learn the pattern):
-
-BAD: "As a Full Stack Developer deeply immersed in the vibrant tech scene of Cape Town, I've been closely following your remarkable journey"
-GOOD: "As a Cape Town-based developer who has spent the last few years building marketplace logic from the ground up, I have long admired how [Company] handles the complexity of [their domain] at scale"
-
-The good version: (1) Shows actual work experience, (2) Demonstrates understanding of their challenges, (3) Natural language
-
-DNA MATCH EXAMPLES:
-
-BAD: "My project, ActuallyFind, mirrors the technical DNA of LekkeSlaap's challenges and ambitions. At its core, ActuallyFind is built using Laravel for the backend"
-GOOD: "My core project, **ActuallyFind**, shares a striking DNA with the LekkeSlaap platform. It is a high-traffic vehicle marketplace built on **Laravel** that utilizes **PostgreSQL + GIS** for location-based searches—the same technical challenges involved in helping a user find the perfect 'lekke' stay nearby."
-
-The good version: (1) Bold confidence ("striking DNA"), (2) Specific technical parallel (GIS for location), (3) Shows product understanding (makes a "lekke" pun), (4) Uses bold for tech
-
-BONUS SKILLS EXAMPLES:
-
-BAD: "In addressing the 'Bonus' requirements mentioned in the job description, I bring hands-on experience with Docker"
-GOOD: "Beyond just writing code, I have a deep passion for the 'Bonus' requirements in your listing: I manage my own containerized VPS environments using **Docker** and **Nginx**"
-
-The good version: (1) Direct quote of "Bonus", (2) Shows ownership ("my own"), (3) Specific tech combo
-
-CLOSING EXAMPLES:
-
-BAD: "I look forward to the possibility of discussing how my background, skills, and enthusiasms can contribute to the innovative work being done at [Company]"
-GOOD: "Thank you for your time and for considering my application. I look forward to discussing how my experience with Laravel and marketplace architecture can contribute to Tripco's continued success."
-
-The good version: (1) Brief thank you, (2) Specific mention of relevant tech, (3) Direct language
 """
-
+    
     user_prompt = f"""
 CANDIDATE: {personal_info.get('name')}
 LOCATION: {personal_info.get('location')}
@@ -324,22 +321,21 @@ JOB: {job_title} at {company_name}
 CANDIDATE'S RELEVANT PROJECTS:
 {chunks_text}
 
-JOB DESCRIPTION (Identify their technical DNA, "Bonus" requirements, and specific initiatives):
+JOB DESCRIPTION:
 {job_description}
 
 INSTRUCTIONS:
-1. HOOK: Identify their technical DNA (e.g., "Marketplace + Location + Scale" for LekkeSlaap). Open with domain knowledge.
-2. DNA MATCH: Find Edward's project that matches their DNA. For marketplace/search roles, it's usually ActuallyFind. Draw SPECIFIC technical parallels (e.g., "we both use GIS for location filtering").
-3. If the company has a unique name or term (like "lekke" in LekkeSlaap), work it naturally into the DNA paragraph as a pun or reference.
-4. BONUS SKILLS: Quote "Bonus" if they use that word. Address each bonus requirement with a specific example from the experience blocks.
-5. PROFESSIONAL MATURITY: Mention the 10-year financial services background for stakeholder management and ownership mindset.
-6. FORWARD-LOOKING: If they mention AI/ML, new products, or specific initiatives, express genuine excitement with specifics.
-7. CLOSING: Use the formula "Thank you for your time and for considering my application. I look forward to discussing how my experience with [specific tech/domain] can contribute to [Company]'s continued success."
-8. Keep the whole letter under 400 words.
-9. Use bold for technologies (**Laravel**, **Docker**)
-10. NO PASSIVE VOICE - use direct active constructions
+1. HOOK: Identify their technical DNA. Open with domain knowledge.
+2. DNA MATCH: Find Edward's project that matches their DNA. Draw SPECIFIC technical parallels.
+3. BONUS SKILLS: Quote "Bonus" if they use that word. Address requirements with examples.
+4. PROFESSIONAL MATURITY: Mention the 10-year financial services background.
+5. FORWARD-LOOKING: Express genuine excitement about their initiatives.
+6. CLOSING: "Thank you for your time and for considering my application. I look forward to discussing how my experience with [specific tech/domain] can contribute to [Company]'s continued success."
+7. Keep under 400 words.
+8. Use bold for technologies (**Laravel**, **Docker**)
+9. NO PASSIVE VOICE
 """
-
+    
     try:
         response = client.chat.completions.create(
             model="gpt-4-turbo-preview",
@@ -347,7 +343,7 @@ INSTRUCTIONS:
                 {"role": "system", "content": system_prompt},
                 {"role": "user", "content": user_prompt}
             ],
-            temperature=0.4  # Lower than before for more consistent voice
+            temperature=0.4
         )
         return response.choices[0].message.content
     except Exception as e:

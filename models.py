@@ -16,6 +16,13 @@ class ApplicationStatus(str, enum.Enum):
     OFFER = "offer"
     ACCEPTED = "accepted"
 
+class BlockType(str, enum.Enum):
+    PILLAR_PROJECT = "pillar_project"      # ActuallyFind, Vector CV
+    SUPPORTING_PROJECT = "supporting_project"  # Other projects
+    EMPLOYMENT = "employment"              # Job roles
+    EDUCATION = "education"                # Education block
+    SKILLS_SUMMARY = "skills_summary"      # Comprehensive skills list
+
 class ExperienceBlock(Base):
     __tablename__ = "experience_blocks"
     
@@ -24,7 +31,9 @@ class ExperienceBlock(Base):
     company = Column(String(200))
     content = Column(Text, nullable=False)
     metadata_tags = Column(JSON)  # Store skills/keywords as JSON array
-    embedding = Column(Vector(1024))  # Claude's embedding dimension
+    block_type = Column(SQLEnum(BlockType), default=BlockType.SUPPORTING_PROJECT)  # NEW FIELD
+    priority = Column(String(10), default="3")  # 1=highest, 5=lowest (for ordering within type)
+    embedding = Column(Vector(1024))  # OpenAI's embedding dimension
     created_at = Column(DateTime, default=datetime.utcnow)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 
@@ -66,6 +75,6 @@ class JobApplication(Base):
     status = Column(SQLEnum(ApplicationStatus), default=ApplicationStatus.DRAFT)
     applied_date = Column(DateTime)
     notes = Column(Text)
-    job_url = Column(Text) 
+    job_url = Column(Text)
     created_at = Column(DateTime, default=datetime.utcnow)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)

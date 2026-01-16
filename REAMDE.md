@@ -93,6 +93,7 @@ streamlit run streamlit_app.py
 ```bash
 pipenv shell
 DATABASE_URL=postgresql://resume_user:resume_pass@127.0.0.1:5433/resume_db py seed_data.py
+DATABASE_URL=postgresql://resume_user:resume_pass@127.0.0.1:5433/resume_db py verify_setup.py
 ```
 
 ## 🎨 How to Use
