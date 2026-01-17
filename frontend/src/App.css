@@ -1,0 +1,70 @@
+
+/* 2. GLOBAL RESET & BASE */
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  margin: 0;
+  min-width: 320px;
+  min-height: 100vh;
+  background-color: var(--bg-slate-900);
+  color: var(--text-gray-100);
+}
+
+/* 3. YOUR MARKDOWN STYLES (Converted from Tailwind) */
+.markdown-content {
+  color: var(--text-gray-300);
+}
+
+.markdown-content h1 {
+  font-size: 2.25rem;
+  font-weight: 700;
+  color: #ffffff;
+  margin-bottom: 1rem;
+  margin-top: 1.5rem;
+}
+
+.markdown-content h2 {
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: var(--purple-300);
+  margin-bottom: 0.75rem;
+  margin-top: 1.5rem;
+}
+
+.markdown-content a {
+  color: var(--blue-400);
+  text-decoration: underline;
+}
+
+.markdown-content code {
+  background-color: rgba(0, 0, 0, 0.3);
+  padding: 0.25rem 0.5rem;
+  border-radius: 0.25rem;
+  font-family: monospace;
+  color: var(--purple-300);
+}
+
+/* 4. ANIMATIONS & SCROLLBAR */
+@keyframes pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.5; }
+}
+
+.animate-pulse {
+  animation: pulse 4s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+}
+
+::-webkit-scrollbar {
+  width: 10px;
+}
+
+::-webkit-scrollbar-track {
+  background: var(--bg-slate-900);
+}
+
+::-webkit-scrollbar-thumb {
+  background: rgba(168, 85, 247, 0.3);
+  border-radius: 10px;
+}
