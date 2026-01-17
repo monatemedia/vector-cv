@@ -1,10 +1,14 @@
-from fastapi import FastAPI, Depends, HTTPException
+from fastapi import FastAPI, Depends, HTTPException, Request
+from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import FileResponse
 from sqlalchemy.orm import Session
 from sqlalchemy import desc
 from pydantic import BaseModel
 from typing import List, Optional, Dict
-from datetime import datetime
+from datetime import datetime, timedelta
 import uuid
+import os
+from collections import defaultdict
 from database import get_db, init_db
 from models import (
     ExperienceBlock, PersonalInfo, StyleGuideline,
@@ -15,8 +19,54 @@ from llm_service import (
     generate_tailored_cv, generate_cover_letter,
     extract_skills_from_job
 )
+from docx_generator import generate_cv_docx, generate_cover_letter_docx
 
 app = FastAPI(title="Resume Synthesizer API")
+
+# Create output directory for Word docs
+OUTPUT_DIR = "./generated_docs"
+os.makedirs(OUTPUT_DIR, exist_ok=True)
+
+# CORS Configuration
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=[
+        "http://localhost:3000",
+        "http://localhost:8501",
+        "http://127.0.0.1:3000",
+        "http://127.0.0.1:8501",
+        # Add your production domains here
+        "https://cv.yourdomain.com",
+        "https://vectorcv.yourdomain.com",
+    ],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
+# Simple rate limiting
+usage_tracker = defaultdict(list)
+MAX_REQUESTS_PER_DAY = int(os.getenv("MAX_CV_PER_DAY", "3"))
+
+def check_rate_limit(client_ip: str):
+    """Check if client has exceeded daily rate limit"""
+    now = datetime.now()
+    
+    # Clean old entries
+    usage_tracker[client_ip] = [
+        timestamp for timestamp in usage_tracker[client_ip]
+        if now - timestamp < timedelta(days=1)
+    ]
+    
+    # Check limit
+    if len(usage_tracker[client_ip]) >= MAX_REQUESTS_PER_DAY:
+        raise HTTPException(
+            status_code=429,
+            detail=f"Daily limit of {MAX_REQUESTS_PER_DAY} CV generations reached. Please try again tomorrow."
+        )
+    
+    # Log this request
+    usage_tracker[client_ip].append(now)
 
 # --- Pydantic Models ---
 
@@ -84,6 +134,8 @@ class JobApplicationResponse(BaseModel):
     skills_gap_report: Optional[Dict]
     status: ApplicationStatus
     created_at: datetime
+    cv_docx_path: Optional[str] = None
+    cover_letter_docx_path: Optional[str] = None
     class Config:
         from_attributes = True
 
@@ -101,20 +153,9 @@ class StyleGuidelineResponse(BaseModel):
 # --- Helper Functions ---
 
 def select_relevant_blocks(job_description: str, db: Session) -> List[ExperienceBlock]:
-    """
-    Hybrid selection strategy:
-    1. ALWAYS include pillar projects (ActuallyFind, Vector CV)
-    2. ALWAYS include skills summary
-    3. Use skill-matching to find blocks with required skills
-    4. Use vector search to fill remaining slots
-    5. Include most recent employment
-    6. Include education
-    """
+    """Hybrid selection strategy for experience blocks"""
     
-    # Generate embedding for job
     job_embedding = generate_embedding(job_description)
-    
-    # Extract skills from job description
     job_skills = extract_skills_from_job(job_description)
     print(f"📊 Extracted {len(job_skills)} skills from job: {job_skills[:10]}")
     
@@ -144,7 +185,6 @@ def select_relevant_blocks(job_description: str, db: Session) -> List[Experience
     # 3. Find blocks matching required skills
     skill_matched_blocks = []
     for skill in job_skills:
-        # Case-insensitive search in metadata_tags
         matching_blocks = db.query(ExperienceBlock).filter(
             ExperienceBlock.id.notin_(selected_ids),
             ExperienceBlock.block_type.in_([BlockType.SUPPORTING_PROJECT, BlockType.PILLAR_PROJECT])
@@ -162,7 +202,7 @@ def select_relevant_blocks(job_description: str, db: Session) -> List[Experience
     selected_blocks.extend(skill_matched_blocks)
     print(f"✅ Added {len(skill_matched_blocks)} skill-matched projects")
     
-    # 4. Use vector search for additional relevant projects (top 3)
+    # 4. Vector search for additional projects
     vector_blocks = db.query(ExperienceBlock).filter(
         ExperienceBlock.id.notin_(selected_ids),
         ExperienceBlock.block_type == BlockType.SUPPORTING_PROJECT
@@ -207,7 +247,13 @@ def startup_event():
 
 @app.get("/")
 def read_root():
-    return {"message": "Resume Synthesizer API", "docs": "/docs", "status": "running"}
+    return {
+        "message": "Resume Synthesizer API",
+        "docs": "/docs",
+        "status": "running",
+        "version": "2.0",
+        "features": ["Vector RAG", "Hybrid Selection", "AI-Powered Generation", "Word Document Export"]
+    }
 
 # Personal Info
 @app.post("/api/personal-info", response_model=PersonalInfoResponse)
@@ -237,8 +283,6 @@ def get_personal_info(db: Session = Depends(get_db)):
 @app.post("/api/experience-blocks", response_model=ExperienceBlockResponse)
 def create_experience_block(exp: ExperienceBlockCreate, db: Session = Depends(get_db)):
     embedding = generate_embedding(exp.content)
-    
-    # Convert string block_type to enum
     block_type_enum = BlockType(exp.block_type) if exp.block_type else BlockType.SUPPORTING_PROJECT
     
     db_exp = ExperienceBlock(
@@ -270,7 +314,17 @@ def delete_experience_block(block_id: uuid.UUID, db: Session = Depends(get_db)):
 
 # Applications
 @app.post("/api/applications", response_model=JobApplicationResponse)
-def create_job_application(app_data: JobApplicationCreate, db: Session = Depends(get_db)):
+def create_job_application(
+    app_data: JobApplicationCreate,
+    request: Request,
+    db: Session = Depends(get_db)
+):
+    # Rate limiting
+    if os.getenv("ENABLE_RATE_LIMITING", "false").lower() == "true":
+        client_ip = request.client.host
+        check_rate_limit(client_ip)
+        print(f"🔒 Rate limit check passed for {client_ip}")
+    
     personal_info = db.query(PersonalInfo).first()
     if not personal_info:
         raise HTTPException(status_code=400, detail="Please add your personal info first")
@@ -314,6 +368,17 @@ def create_job_application(app_data: JobApplicationCreate, db: Session = Depends
         app_data.company_name, app_data.job_title
     )
     
+    # Generate Word documents
+    print(f"📄 Generating Word documents...")
+    try:
+        cv_docx_path = generate_cv_docx(cv, app_data.company_name, app_data.job_title, OUTPUT_DIR)
+        cover_docx_path = generate_cover_letter_docx(cover_letter, app_data.company_name, app_data.job_title, OUTPUT_DIR)
+        print(f"✅ Word documents generated")
+    except Exception as e:
+        print(f"⚠️  Word document generation failed: {e}")
+        cv_docx_path = None
+        cover_docx_path = None
+    
     db_app = JobApplication(
         company_name=app_data.company_name,
         job_title=app_data.job_title,
@@ -328,12 +393,54 @@ def create_job_application(app_data: JobApplicationCreate, db: Session = Depends
     db.commit()
     db.refresh(db_app)
     
+    # Add docx paths to response
+    response = JobApplicationResponse.from_orm(db_app)
+    response.cv_docx_path = cv_docx_path
+    response.cover_letter_docx_path = cover_docx_path
+    
     print(f"✅ Application created successfully\n")
-    return db_app
+    return response
 
 @app.get("/api/applications", response_model=List[JobApplicationResponse])
 def list_applications(db: Session = Depends(get_db)):
     return db.query(JobApplication).order_by(desc(JobApplication.created_at)).all()
+
+# Download endpoints for Word documents
+@app.get("/api/download/cv/{application_id}")
+def download_cv(application_id: uuid.UUID, db: Session = Depends(get_db)):
+    """Download CV as Word document"""
+    app = db.query(JobApplication).filter(JobApplication.id == application_id).first()
+    if not app:
+        raise HTTPException(status_code=404, detail="Application not found")
+    
+    # Generate fresh Word doc
+    try:
+        cv_path = generate_cv_docx(app.generated_cv, app.company_name, app.job_title, OUTPUT_DIR)
+        return FileResponse(
+            cv_path,
+            media_type="application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+            filename=f"CV_{app.company_name}_{app.job_title}.docx"
+        )
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to generate Word document: {str(e)}")
+
+@app.get("/api/download/cover-letter/{application_id}")
+def download_cover_letter(application_id: uuid.UUID, db: Session = Depends(get_db)):
+    """Download cover letter as Word document"""
+    app = db.query(JobApplication).filter(JobApplication.id == application_id).first()
+    if not app:
+        raise HTTPException(status_code=404, detail="Application not found")
+    
+    # Generate fresh Word doc
+    try:
+        cover_path = generate_cover_letter_docx(app.generated_cover_letter, app.company_name, app.job_title, OUTPUT_DIR)
+        return FileResponse(
+            cover_path,
+            media_type="application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+            filename=f"CoverLetter_{app.company_name}_{app.job_title}.docx"
+        )
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to generate Word document: {str(e)}")
 
 # Style Guidelines
 @app.post("/api/style-guidelines", response_model=StyleGuidelineResponse)
