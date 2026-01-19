@@ -1,163 +1,138 @@
-<a id="readme-top"></a>
+# 📄 Vector CV: Resume Synthesizer
 
-[![Contributors][contributors-shield]][contributors-url]
-[![Forks][forks-shield]][forks-url]
-[![Stargazers][stars-shield]][stars-url]
-[![Issues][issues-shield]][issues-url]
-[![MIT License][license-shield]][license-url]
-[![LinkedIn][linkedin-shield]][linkedin-url]
+An AI-powered RAG (Retrieval-Augmented Generation) system that stores your career history as vector embeddings and synthesizes tailored CVs and cover letters based on specific job descriptions.
 
-<br />
-<div align="center">
-  <a href="https://github.com/monatemedia/vector-cv">
-    <img src="https://cdn-icons-png.flaticon.com/512/3135/3135679.png" alt="Logo" width="80" height="80">
-  </a>
+## 🏗️ Architecture
 
-<h3 align="center">Vector CV: Resume Synthesizer</h3>
+The system uses a modern RAG stack:
 
-  <p align="center">
-    An AI-powered RAG system that stores your career history as vector embeddings and synthesizes tailored CVs based on specific job descriptions.
-    <br />
-    <a href="https://github.com/monatemedia/vector-cv"><strong>Explore the docs »</strong></a>
-    <br />
-    <br />
-    <a href="https://github.com/monatemedia/vector-cv">View Demo</a>
-    &middot;
-    <a href="https://github.com/monatemedia/vector-cv/issues">Report Bug</a>
-    &middot;
-    <a href="https://github.com/monatemedia/vector-cv/issues">Request Feature</a>
-  </p>
-</div>
+* **FastAPI:** High-performance backend.
+* **PostgreSQL + pgvector:** Vector database for semantic search.
+* **OpenAI (GPT-4o):** For synthesis and skills gap analysis.
+* **OpenAI (text-embedding-3-small):** To convert text into 1024-dimension vectors.
+* **Streamlit:** Admin frontend for easy interaction.
+* **React:** User frontend for user interaction.
 
-<details>
-  <summary>Table of Contents</summary>
-  <ol>
-    <li>
-      <a href="#about-the-project">About The Project</a>
-      <ul>
-        <li><a href="#built-with">Built With</a></li>
-      </ul>
-    </li>
-    <li>
-      <a href="#getting-started">Getting Started</a>
-      <ul>
-        <li><a href="#prerequisites">Prerequisites</a></li>
-        <li><a href="#installation">Installation</a></li>
-      </ul>
-    </li>
-    <li><a href="#usage">Usage</a></li>
-    <li><a href="#roadmap">Roadmap</a></li>
-    <li><a href="#license">License</a></li>
-    <li><a href="#contact">Contact</a></li>
-  </ol>
-</details>
+## 🎯 What You Got
 
-## About The Project
+**6 Core Files:**
+1. **docker-compose.yml** - PostgreSQL with pgvector extension
+2. **requirements.txt** - All Python dependencies
+3. **.env.example** - Configuration template
+4. **models.py** - Database schema with vector embeddings
+5. **database.py** - Database connection and initialization
+6. **llm_service.py** - Claude AI integration for CV generation
+7. **main.py** - FastAPI backend with all endpoints
+8. **streamlit_app.py** - Beautiful admin web interface
+9. **App.jsx** - Beautiful user web interface
 
-Vector CV solves the "one-size-fits-all" resume problem. Using a Retrieval-Augmented Generation (RAG) stack, it selects only the most semantically relevant experience blocks for a specific job application, ensuring your CV is always perfectly tailored.
+## 🚀 Key Features Implemented
 
-**Key Features:**
-* **Master Profile Storage** - Semantic storage of work history using `pgvector`.
-* **Hybrid Selection Strategy** - Combines pillar projects, specific skill matching, and vector similarity search.
-* **Skills Gap Analysis** - Identifies missing requirements before you apply.
-* **Automated Document Export** - Generates `.docx` files for CVs and Cover Letters.
+✅ **Master Profile Storage** - Store all your experiences with vector embeddings  
+✅ **Vector Similarity Search** - Uses pgvector to find most relevant experiences  
+✅ **Skills Gap Analysis** - Identifies what you're missing vs what job requires  
+✅ **Tailored CV Generation** - AI rewrites your CV for each specific job  
+✅ **Cover Letter Generation** - Personalized cover letters  
+✅ **Application Tracking** - Track status of each application  
+✅ **Style Guidelines** - Set rules for how CVs should be formatted  
 
-<p align="right">(<a href="#readme-top">back to top</a>)</p>
+## 📦 Setup Instructions
 
-### Built With
-
-* [![FastAPI][FastAPI-badge]][FastAPI-url]
-* [![React][React-badge]][React-url]
-* [![PostgreSQL][Postgres-badge]][Postgres-url]
-* [![OpenAI][OpenAI-badge]][OpenAI-url]
-* [![Docker][Docker-badge]][Docker-url]
-
-<p align="right">(<a href="#readme-top">back to top</a>)</p>
-
-## Getting Started
-
-To get a local copy up and running, follow these steps.
-
-### Prerequisites
-
-* **Docker & Docker Compose**
-* **Python 3.10+** and **Pipenv**
-* **Node.js & npm**
-
-### Installation
-
-1. Clone the repo
-   ```sh
-   git clone [https://github.com/monatemedia/vector-cv.git](https://github.com/monatemedia/vector-cv.git)
-
+1. **Copy the files to your local machine**
+```bash
+git clone https://github.com/monatemedia/vector-cv.git
 ```
 
-2. Create your `.env` file from the template
-```sh
+2. **Change directory into project folder:**
+```bash
+cd vector-cv
+```
+
+1. **Create .env file:**
+```bash
 cp .env.example .env
-# Add your OPENAI_API_KEY and Database credentials
-
+# Edit .env and add your ANTHROPIC_API_KEY
 ```
 
+1. **Start PostgreSQL with pgvector:**
+```bash
+# Check if Docker is running
+docker compose up -d
+```
 
-3. Install dependencies (Root, Backend, and Frontend)
+> [!NOTE]
+> To remove docker images use: 
+> - `docker compose down -v --rmi all`
+
+4. **Install Virtual Environment**
+```bash
+pip install pipenv
+```
+
+5. **Create Virtual Environment**
+```bash
+pipenv shell
+```
+
+6. **Install Python dependencies:**
+```bash
+pip install -r requirements.txt
+```
+
+> [!NOTE]
+> To remove pipenv use: 
+> - `taskkill //F //IM python.exe //T` to stop all processes
+> - `pipenv --rm` to remove the pipenv packages
+
+7. **Start the FastAPI backend:**
+```bash
+python main.py
+```
+
+8. **In a new terminal, start Streamlit:**
+```bash
+pipenv shell
+streamlit run streamlit_app.py
+```
+
+9. **In a new terminal, import seeded data**
+```bash
+pipenv shell
+export $(grep -v '^#' .env | xargs) && python seed_data.py
+export $(grep -v '^#' .env | xargs) && python verify_setup.py
+```
+
+10. **In a new terminal, start the frontend**
 ```sh
-make install
-
+npm run dev --prefix frontend
 ```
 
+## 🎨 How to Use
 
-4. Start the environment and open the browser
-```sh
-make all
+1. **Add Personal Info** - Your contact details and professional summary
+2. **Add Experience Blocks** - All your work history, projects, skills
+3. **Set Style Guidelines** (Optional) - "Keep CV to 2 pages", "Use STAR method", etc.
+4. **Create Application** - Paste job description from LekkeSlaap
+5. **Get Results** - Tailored CV, Cover Letter, and Skills Gap Analysis in under 60 seconds!
 
-```
+## 🔍 About the pgvector Implementation
 
+The system uses **cosine similarity search** to find your most relevant experiences. When you paste a job description:
 
+1. Job description → converted to vector embedding
+2. Your experiences (already embedded) → ranked by similarity
+3. Top 5 most relevant → sent to Claude
+4. Claude generates targeted CV using only relevant info
 
-<p align="right">(<a href="#readme-top">back to top</a>)</p>
+This means your "Auto Technician" experience won't show up for a Laravel job, but your "ActuallyFind marketplace" project will be front and center!
 
-## Usage
+## 🎯 Next Steps for Enhancement
 
-### 1. Initialize the Database
+After testing the MVP, consider:
+- Replace the placeholder embedding function with a real model (OpenAI embeddings or sentence-transformers)
+- Add authentication for multi-user support
+- Export to PDF functionality
+- Email integration to track responses
+- Analytics dashboard showing which skills are most in-demand
 
-If running for the first time, seed your master profile:
-
-```sh
-make seed
-
-```
-
-### 2. Tailor a CV
-
-1. Access the dashboard at `http://localhost:5173`.
-2. Paste the Job Description.
-3. Review the **Skills Gap Analysis**.
-4. Download your generated `.docx` CV and Cover Letter.
-
-<p align="right">(<a href="#readme-top">back to top</a>)</p>
-
-## Roadmap
-
-* [x] Vector Similarity Search (pgvector)
-* [x] Skills Gap Analysis
-* [x] Word Document (.docx) Generation
-* [ ] PDF Export functionality
-* [ ] Multi-user Authentication
-* [ ] Direct Email integration for applications
-
-<p align="right">(<a href="#readme-top">back to top</a>)</p>
-
-## License
-
-Distributed under the MIT License. See `LICENSE` for more information.
-
-<p align="right">(<a href="#readme-top">back to top</a>)</p>
-
-## Contact
-
-Your Name - [@monatemedia](https://www.google.com/search?q=https://twitter.com/monatemedia) - email@example.com
-
-Project Link: [https://github.com/monatemedia/vector-cv](https://www.google.com/url?sa=E&source=gmail&q=https://github.com/monatemedia/vector-cv)
-
-<p align="right">(<a href="#readme-top">back to top</a>)</p>
+The architecture is solid and ready to scale! Test it out with the LekkeSlaap job and let me know how it works. 🚀
