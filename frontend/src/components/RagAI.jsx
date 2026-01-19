@@ -3,13 +3,13 @@ import { Github } from "lucide-react";
 export default function RagAI() {
   return (
     <div className="max-w-4xl mx-auto">
-      <div className="bg-white/5 backdrop-blur-xl rounded-2xl border border-white/10 p-8 shadow-2xl">
+      <div className="bg-black/60 backdrop-blur-md rounded-2xl border border-[#549E06]/30 p-8 shadow-2xl">
         <h2 className="text-4xl font-bold text-white mb-6">What is RAG AI?</h2>
 
         <div className="space-y-6 text-gray-300">
           <p className="text-lg">
             RAG stands for{" "}
-            <strong className="text-purple-400">
+            <strong className="text-[#C6F486]">
               Retrieval-Augmented Generation
             </strong>{" "}
             - a powerful AI architecture that combines information retrieval
@@ -18,24 +18,24 @@ export default function RagAI() {
           </p>
 
           <div>
-            <h3 className="text-2xl font-bold text-purple-300 mb-3">
+            <h3 className="text-2xl font-bold text-[#C6F486] mb-3">
               How Vector CV Works
             </h3>
             <ol className="list-decimal list-inside space-y-4">
               <li>
-                <strong className="text-blue-400">Embeddings:</strong> All my
+                <strong className="text-[#ADB5D6]">Embeddings:</strong> All my
                 experience blocks are converted into 1024-dimensional vectors
                 using OpenAI's text-embedding-3-small model. These vectors
                 capture the semantic meaning of the text.
               </li>
               <li>
-                <strong className="text-blue-400">Vector Database:</strong>{" "}
+                <strong className="text-[#ADB5D6]">Vector Database:</strong>{" "}
                 Vectors are stored in PostgreSQL with the pgvector extension,
                 enabling lightning-fast similarity searches through cosine
                 distance calculations.
               </li>
               <li>
-                <strong className="text-blue-400">Hybrid Selection:</strong>{" "}
+                <strong className="text-[#ADB5D6]">Hybrid Selection:</strong>{" "}
                 When you paste a job description, the system uses three
                 strategies:
                 <ul className="list-disc list-inside ml-6 mt-2 space-y-1">
@@ -47,7 +47,7 @@ export default function RagAI() {
                 </ul>
               </li>
               <li>
-                <strong className="text-blue-400">AI Generation:</strong>{" "}
+                <strong className="text-[#ADB5D6]">AI Generation:</strong>{" "}
                 Selected blocks are sent to GPT-4 along with sophisticated
                 prompts that include few-shot examples and anti-hallucination
                 guards to generate a tailored CV and cover letter in my exact
@@ -57,7 +57,7 @@ export default function RagAI() {
           </div>
 
           <div>
-            <h3 className="text-2xl font-bold text-purple-300 mb-3">
+            <h3 className="text-2xl font-bold text-[#C6F486] mb-3">
               Why This Matters
             </h3>
             <p>
@@ -70,10 +70,10 @@ export default function RagAI() {
           </div>
 
           <div>
-            <h3 className="text-2xl font-bold text-purple-300 mb-3">
+            <h3 className="text-2xl font-bold text-[#C6F486] mb-3">
               Technical Implementation
             </h3>
-            <div className="bg-black/30 p-4 rounded-lg border border-white/10 space-y-3">
+            <div className="bg-black/30 p-4 rounded-lg border border-[#549E06]/30 space-y-3">
               <p>
                 <strong className="text-green-400">Backend:</strong> FastAPI,
                 Python, SQLAlchemy
@@ -98,7 +98,7 @@ export default function RagAI() {
           </div>
 
           <div>
-            <h3 className="text-2xl font-bold text-purple-300 mb-3">
+            <h3 className="text-2xl font-bold text-[#C6F486] mb-3">
               The Problem It Solves
             </h3>
             <p>
@@ -115,9 +115,9 @@ export default function RagAI() {
             </ul>
           </div>
 
-          <div className="mt-8 p-6 bg-gradient-to-r from-purple-500/10 to-blue-500/10 border border-purple-500/30 rounded-lg">
+          <div className="mt-8 p-6 bg-gradient-to-r from-purple-500/10 to-blue-500/10 border border-[#549E06]/30 rounded-lg">
             <div className="flex items-start gap-4">
-              <Github className="w-8 h-8 text-purple-400 flex-shrink-0 mt-1" />
+              <Github className="w-8 h-8 text-[#C6F486] flex-shrink-0 mt-1" />
               <div>
                 <h3 className="text-xl font-bold text-white mb-2">
                   Open Source
@@ -131,7 +131,7 @@ export default function RagAI() {
                   href="https://github.com/monatemedia/vector-cv"
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="inline-block px-6 py-2 bg-purple-500/20 hover:bg-purple-500/30 border border-purple-500/30 text-purple-300 rounded-lg transition-all"
+                  className="inline-block px-6 py-2 bg-[#549E06]/20 hover:bg-purple-500/30 border border-[#549E06]/30 text-[#C6F486] rounded-lg transition-all"
                 >
                   View on GitHub
                 </a>

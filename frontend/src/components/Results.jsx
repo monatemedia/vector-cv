@@ -33,9 +33,9 @@ export default function Results({ result, apiUrl }) {
 
       {/* Skills Gap Analysis */}
       {result.skills_gap_report && (
-        <div className="bg-white/5 backdrop-blur-xl rounded-2xl border border-white/10 p-8">
+        <div className="bg-black/60 backdrop-blur-md rounded-2xl border border-[#549E06]/30 p-8">
           <h3 className="text-2xl font-bold text-white mb-6 flex items-center gap-3">
-            <Target className="w-6 h-6 text-purple-400" />
+            <Target className="w-6 h-6 text-[#C6F486]" />
             Skills Gap Analysis
           </h3>
 
@@ -79,7 +79,7 @@ export default function Results({ result, apiUrl }) {
 
           {result.skills_gap_report.recommendations && (
             <div>
-              <h4 className="text-lg font-semibold text-blue-400 mb-3">
+              <h4 className="text-lg font-semibold text-[#ADB5D6] mb-3">
                 Recommendations
               </h4>
               <div className="space-y-2">
@@ -96,10 +96,10 @@ export default function Results({ result, apiUrl }) {
       )}
 
       {/* CV */}
-      <div className="bg-white/5 backdrop-blur-xl rounded-2xl border border-white/10 p-8">
+      <div className="bg-black/60 backdrop-blur-md rounded-2xl border border-[#549E06]/30 p-8">
         <div className="flex items-center justify-between mb-6">
           <h3 className="text-2xl font-bold text-white flex items-center gap-3">
-            <FileText className="w-6 h-6 text-purple-400" />
+            <FileText className="w-6 h-6 text-[#C6F486]" />
             Tailored CV
           </h3>
           <DownloadDropdown
@@ -118,10 +118,10 @@ export default function Results({ result, apiUrl }) {
       </div>
 
       {/* Cover Letter */}
-      <div className="bg-white/5 backdrop-blur-xl rounded-2xl border border-white/10 p-8">
+      <div className="bg-black/60 backdrop-blur-md rounded-2xl border border-[#549E06]/30 p-8">
         <div className="flex items-center justify-between mb-6">
           <h3 className="text-2xl font-bold text-white flex items-center gap-3">
-            <Briefcase className="w-6 h-6 text-blue-400" />
+            <Briefcase className="w-6 h-6 text-[#ADB5D6]" />
             Cover Letter
           </h3>
           <DownloadDropdown
@@ -135,7 +135,7 @@ export default function Results({ result, apiUrl }) {
           <div
             className="markdown-content"
             dangerouslySetInnerHTML={renderMarkdownAsHTML(
-              result.generated_cover_letter
+              result.generated_cover_letter,
             )}
           />
         </div>

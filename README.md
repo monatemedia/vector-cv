@@ -92,8 +92,8 @@ streamlit run streamlit_app.py
 9. **In a new terminal, import seeded data**
 ```bash
 pipenv shell
-DATABASE_URL=postgresql://resume_user:resume_pass@127.0.0.1:5433/resume_db py seed_data.py
-DATABASE_URL=postgresql://resume_user:resume_pass@127.0.0.1:5433/resume_db py verify_setup.py
+export $(grep -v '^#' .env | xargs) && python seed_data.py
+export $(grep -v '^#' .env | xargs) && python verify_setup.py
 ```
 
 ## 🎨 How to Use

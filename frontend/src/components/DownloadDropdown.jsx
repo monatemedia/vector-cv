@@ -31,7 +31,7 @@ export default function DownloadDropdown({
     try {
       const endpoint = type === "cv" ? "cv" : "cover-letter";
       const response = await fetch(
-        `${apiUrl}/api/download/${endpoint}/${result.id}`
+        `${apiUrl}/api/download/${endpoint}/${result.id}`,
       );
 
       if (!response.ok) throw new Error("Failed to download");
@@ -53,13 +53,13 @@ export default function DownloadDropdown({
   const colorClasses = {
     purple: {
       button:
-        "bg-purple-500/20 hover:bg-purple-500/30 border-purple-500/30 text-purple-300",
-      dropdown: "bg-purple-500/10 border-purple-500/30",
+        "bg-[#549E06]/20 hover:bg-purple-500/30 border-[#549E06]/30 text-[#C6F486]",
+      dropdown: "bg-[#542C3C]/20 border-[#549E06]/30",
     },
     blue: {
       button:
-        "bg-blue-500/20 hover:bg-blue-500/30 border-blue-500/30 text-blue-300",
-      dropdown: "bg-blue-500/10 border-blue-500/30",
+        "bg-[#9D6777]/20 hover:bg-blue-500/30 border-[#9D6777]/30 text-blue-300",
+      dropdown: "bg-blue-500/10 border-[#9D6777]/30",
     },
   };
 

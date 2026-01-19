@@ -19,10 +19,10 @@ export default function Generate({
         </p>
       </div>
 
-      <div className="bg-white/5 backdrop-blur-xl rounded-2xl border border-white/10 p-8 shadow-2xl">
+      <div className="bg-black/60 backdrop-blur-md rounded-2xl border border-[#549E06]/30 p-8 shadow-2xl">
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
           <div>
-            <label className="block text-sm font-medium text-purple-300 mb-2">
+            <label className="block text-sm font-medium text-[#C6F486] mb-2">
               Company Name *
             </label>
             <input
@@ -31,13 +31,13 @@ export default function Generate({
               onChange={(e) =>
                 setFormData({ ...formData, company_name: e.target.value })
               }
-              className="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-lg text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-purple-500"
+              className="w-full px-4 py-3 bg-white/5 border border-[#549E06]/30 rounded-lg text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-[#95E913]"
               placeholder="e.g., LekkeSlaap"
             />
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-purple-300 mb-2">
+            <label className="block text-sm font-medium text-[#C6F486] mb-2">
               Job Title *
             </label>
             <input
@@ -46,14 +46,14 @@ export default function Generate({
               onChange={(e) =>
                 setFormData({ ...formData, job_title: e.target.value })
               }
-              className="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-lg text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-purple-500"
+              className="w-full px-4 py-3 bg-white/5 border border-[#549E06]/30 rounded-lg text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-[#95E913]"
               placeholder="e.g., Full Stack Developer"
             />
           </div>
         </div>
 
         <div className="mb-6">
-          <label className="block text-sm font-medium text-purple-300 mb-2">
+          <label className="block text-sm font-medium text-[#C6F486] mb-2">
             Job URL (Optional)
           </label>
           <input
@@ -62,13 +62,13 @@ export default function Generate({
             onChange={(e) =>
               setFormData({ ...formData, job_url: e.target.value })
             }
-            className="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-lg text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-purple-500"
+            className="w-full px-4 py-3 bg-white/5 border border-[#549E06]/30 rounded-lg text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-[#95E913]"
             placeholder="https://..."
           />
         </div>
 
         <div className="mb-8">
-          <label className="block text-sm font-medium text-purple-300 mb-2">
+          <label className="block text-sm font-medium text-[#C6F486] mb-2">
             Job Description *
           </label>
           <textarea
@@ -77,7 +77,7 @@ export default function Generate({
               setFormData({ ...formData, raw_spec: e.target.value })
             }
             rows={16}
-            className="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-lg text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-purple-500 font-mono text-sm"
+            className="w-full px-4 py-3 bg-white/5 border border-[#549E06]/30 rounded-lg text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-[#95E913] font-mono text-sm"
             placeholder="Paste the complete job description here..."
           />
         </div>
@@ -95,7 +95,7 @@ export default function Generate({
         <button
           onClick={onGenerate}
           disabled={loading}
-          className="w-full py-4 bg-gradient-to-r from-purple-500 to-blue-500 text-white rounded-lg font-semibold hover:from-purple-600 hover:to-blue-600 transition-all shadow-lg hover:shadow-xl disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+          className="w-full py-4 bg-[#95E913] text-white rounded-lg font-semibold hover:bg-[#549E06] transition-all shadow-lg hover:shadow-xl disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
         >
           {loading ? (
             <>

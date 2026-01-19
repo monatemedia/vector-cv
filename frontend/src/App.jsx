@@ -8,6 +8,7 @@ import {
   Target,
   FileText,
 } from "lucide-react";
+import ParticleBackground from "./components/ParticleBackground";
 import About from "./components/About";
 import RagAI from "./components/RagAI";
 import Skills from "./components/Skills";
@@ -100,35 +101,29 @@ function App() {
   ];
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900">
-      {/* Animated background */}
-      <div className="absolute inset-0 overflow-hidden pointer-events-none">
-        <div className="absolute w-96 h-96 bg-purple-500/20 rounded-full blur-3xl -top-48 -left-48 animate-pulse" />
-        <div
-          className="absolute w-96 h-96 bg-blue-500/20 rounded-full blur-3xl -bottom-48 -right-48 animate-pulse"
-          style={{ animationDelay: "1s" }}
-        />
-      </div>
+    <div className="min-h-screen bg-black overflow-x-hidden">
+      {/* Particle Background */}
+      <ParticleBackground />
 
-      <div className="relative z-10">
+      <div className="relative z-10 pointer-events-none">
         {/* Header */}
-        <header className="border-b border-white/10 bg-black/20 backdrop-blur-xl">
+        <header className="border-b border-[#549E06]/30 bg-black/40 backdrop-blur-md pointer-events-auto">
           <div className="max-w-7xl mx-auto px-6 py-6">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-3">
-                <div className="w-12 h-12 bg-gradient-to-br from-purple-500 to-blue-500 rounded-xl flex items-center justify-center">
-                  <Sparkles className="w-7 h-7 text-white" />
+                <div className="w-12 h-12 bg-[#95E913] rounded-xl flex items-center justify-center shadow-lg shadow-[#95E913]/30">
+                  <Sparkles className="w-7 h-7 text-black" />
                 </div>
                 <div>
                   <h1 className="text-2xl font-bold text-white">Vector CV</h1>
-                  <p className="text-sm text-purple-300">
+                  <p className="text-sm text-[#C6F486]">
                     AI-Powered Resume Synthesizer
                   </p>
                 </div>
               </div>
               {personalInfo && (
-                <div className="flex items-center gap-3 bg-white/5 px-4 py-2 rounded-lg border border-white/10">
-                  <User className="w-5 h-5 text-purple-400" />
+                <div className="flex items-center gap-3 bg-[#542C3C]/50 px-4 py-2 rounded-lg border border-[#9D6777]/30 backdrop-blur-sm">
+                  <User className="w-5 h-5 text-[#ADB5D6]" />
                   <span className="text-white font-medium">
                     {personalInfo.name}
                   </span>
@@ -139,9 +134,9 @@ function App() {
         </header>
 
         {/* Main Content */}
-        <main className="max-w-7xl mx-auto px-6 py-12">
+        <main className="max-w-7xl mx-auto px-6 py-12 pointer-events-auto">
           {/* Tabs */}
-          <div className="flex flex-wrap gap-2 mb-8 bg-white/5 p-2 rounded-xl w-fit mx-auto border border-white/10">
+          <div className="flex flex-wrap gap-2 mb-8 bg-black/50 p-2 rounded-xl w-fit mx-auto border border-[#549E06]/30 backdrop-blur-md">
             {tabs.map(({ id, label, icon: Icon, disabled }) => (
               <button
                 key={id}
@@ -149,8 +144,8 @@ function App() {
                 disabled={disabled}
                 className={`px-6 py-3 rounded-lg font-medium transition-all flex items-center gap-2 ${
                   activeTab === id
-                    ? "bg-gradient-to-r from-purple-500 to-blue-500 text-white shadow-lg"
-                    : "text-gray-400 hover:text-white disabled:opacity-50 disabled:cursor-not-allowed"
+                    ? "bg-[#95E913] text-black shadow-lg shadow-[#95E913]/30"
+                    : "text-[#C6F486] hover:text-white hover:bg-[#549E06]/20 disabled:opacity-50 disabled:cursor-not-allowed"
                 }`}
               >
                 <Icon className="w-5 h-5" />
@@ -180,10 +175,10 @@ function App() {
         </main>
 
         {/* Footer */}
-        <footer className="border-t border-white/10 bg-black/20 backdrop-blur-xl mt-20">
+        <footer className="border-t border-[#549E06]/30 bg-black/40 backdrop-blur-md mt-20 pointer-events-auto">
           <div className="max-w-7xl mx-auto px-6 py-8">
             <div className="flex items-center justify-between flex-wrap gap-4">
-              <p className="text-gray-400 text-sm">
+              <p className="text-[#ADB5D6] text-sm">
                 Powered by OpenAI GPT-4 • Built by Edward Baitsewe
               </p>
               <div className="flex gap-4">
@@ -191,7 +186,7 @@ function App() {
                   href="https://github.com/monatemedia"
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="text-gray-400 hover:text-white transition-colors"
+                  className="text-[#C6F486] hover:text-[#95E913] transition-colors"
                 >
                   GitHub
                 </a>
@@ -199,7 +194,7 @@ function App() {
                   href="https://linkedin.com/in/edwardbaitsewe"
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="text-gray-400 hover:text-white transition-colors"
+                  className="text-[#C6F486] hover:text-[#95E913] transition-colors"
                 >
                   LinkedIn
                 </a>
