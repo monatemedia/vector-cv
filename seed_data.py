@@ -287,4 +287,8 @@ GitHub: https://github.com/monatemedia/python-streamlit-mortgage-calculator""",
     print("   - 1 Education")
 
 if __name__ == "__main__":
+    from database import init_db
+    # 1. Force the extension and table creation properly
+    init_db() 
+    # 2. Then run the seed logic
     seed_database()

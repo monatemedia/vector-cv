@@ -21,24 +21,23 @@ from llm_service import (
 )
 from docx_generator import generate_cv_docx, generate_cover_letter_docx
 
-app = FastAPI(title="Resume Synthesizer API")
+# Create the app with a dynamic root_path
+app = FastAPI(
+    title="Vector CV API",
+    # This allows Swagger to work behind the Nginx /api prefix
+    root_path=os.getenv("PROXY_ROOT_PATH", "")
+)
 
 # Create output directory for Word docs
 OUTPUT_DIR = "./generated_docs"
 os.makedirs(OUTPUT_DIR, exist_ok=True)
 
 # CORS Configuration
+origins = os.getenv("ALLOWED_ORIGINS", "http://localhost:3000").split(",")
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=[
-        "http://localhost:5173",
-        "http://localhost:8501",
-        "http://127.0.0.1:5173",
-        "http://127.0.0.1:8501",
-        # Add your production domains here
-        "https://cv.yourdomain.com",
-        "https://vectorcv.yourdomain.com",
-    ],
+    allow_origins=origins,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -48,24 +47,36 @@ app.add_middleware(
 usage_tracker = defaultdict(list)
 MAX_REQUESTS_PER_DAY = int(os.getenv("MAX_CV_PER_DAY", "3"))
 
-def check_rate_limit(client_ip: str):
-    """Check if client has exceeded daily rate limit"""
+# In main.py
+def check_rate_limit(request: Request):
+    """Check if client has exceeded daily rate limit using Real IP from Nginx"""
+    if os.getenv("ENABLE_RATE_LIMITING", "false").lower() != "true":
+        return
+
+    # 1. Get the real user IP from Nginx header (X-Forwarded-For)
+    forwarded = request.headers.get("X-Forwarded-For")
+    if forwarded:
+        client_ip = forwarded.split(",")[0]  # Get the first IP in the list
+    else:
+        client_ip = request.client.host
+
     now = datetime.now()
     
-    # Clean old entries
+    # 2. Clean old entries (keep only last 24h)
     usage_tracker[client_ip] = [
         timestamp for timestamp in usage_tracker[client_ip]
         if now - timestamp < timedelta(days=1)
     ]
     
-    # Check limit
+    # 3. Check limit
     if len(usage_tracker[client_ip]) >= MAX_REQUESTS_PER_DAY:
+        print(f"🚫 Rate limit BLOCKED: {client_ip}")
         raise HTTPException(
             status_code=429,
-            detail=f"Daily limit of {MAX_REQUESTS_PER_DAY} CV generations reached. Please try again tomorrow."
+            detail=f"Daily limit of {MAX_REQUESTS_PER_DAY} requests reached."
         )
     
-    # Log this request
+    # 4. Log this request
     usage_tracker[client_ip].append(now)
 
 # --- Pydantic Models ---
@@ -280,7 +291,8 @@ def get_personal_info(db: Session = Depends(get_db)):
     return info
 
 # Experience Blocks
-@app.post("/api/experience-blocks", response_model=ExperienceBlockResponse)
+@app.post("/api/experience-blocks", response_model=ExperienceBlockResponse, 
+          include_in_schema=False)
 def create_experience_block(exp: ExperienceBlockCreate, db: Session = Depends(get_db)):
     embedding = generate_embedding(exp.content)
     block_type_enum = BlockType(exp.block_type) if exp.block_type else BlockType.SUPPORTING_PROJECT
@@ -313,18 +325,12 @@ def delete_experience_block(block_id: uuid.UUID, db: Session = Depends(get_db)):
     return {"message": "Deleted successfully"}
 
 # Applications
-@app.post("/api/applications", response_model=JobApplicationResponse)
+@app.post("/api/applications", response_model=JobApplicationResponse, dependencies=[Depends(check_rate_limit)])
 def create_job_application(
     app_data: JobApplicationCreate,
     request: Request,
     db: Session = Depends(get_db)
 ):
-    # Rate limiting
-    if os.getenv("ENABLE_RATE_LIMITING", "false").lower() == "true":
-        client_ip = request.client.host
-        check_rate_limit(client_ip)
-        print(f"🔒 Rate limit check passed for {client_ip}")
-    
     personal_info = db.query(PersonalInfo).first()
     if not personal_info:
         raise HTTPException(status_code=400, detail="Please add your personal info first")

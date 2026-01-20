@@ -15,7 +15,11 @@ import Skills from "./components/Skills";
 import Generate from "./components/Generate";
 import Results from "./components/Results";
 
-const API_URL = import.meta.env.VITE_API_URL || "http://localhost:8010";
+// If we are in production (Docker/Nginx), use relative paths.
+// If in dev mode, use the environment variable or localhost.
+const API_URL = import.meta.env.PROD
+  ? ""
+  : import.meta.env.VITE_API_URL || "http://localhost:8010";
 
 function App() {
   const [activeTab, setActiveTab] = useState("about");

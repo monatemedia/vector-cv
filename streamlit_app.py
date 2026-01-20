@@ -10,7 +10,7 @@ from dotenv import load_dotenv
 load_dotenv()
 
 # --- 1. CONFIGURATION & AUTH SETUP ---
-API_URL = "http://localhost:8010"
+API_URL = os.getenv("API_URL", "http://localhost:8010")
 
 st.set_page_config(
     page_title="Resume Synthesizer",
