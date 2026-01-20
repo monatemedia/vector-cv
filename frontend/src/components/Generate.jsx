@@ -11,11 +11,11 @@ export default function Generate({
     <div className="max-w-4xl mx-auto">
       <div className="text-center mb-12">
         <h2 className="text-5xl font-bold text-white mb-4">
-          Generate Your Perfect CV
+          Generate AI-tailored CV
         </h2>
         <p className="text-xl text-purple-200 max-w-2xl mx-auto">
           Paste any job description and get an AI-tailored CV and cover letter
-          in seconds
+          for Edward in seconds
         </p>
       </div>
 
