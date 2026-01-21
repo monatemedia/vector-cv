@@ -63,6 +63,8 @@ docker compose up -d
 > [!NOTE]
 > To remove docker images use: 
 > - `docker compose down -v --rmi all`
+> To remove all stale docker images use (with caution)
+> - `docker system prune -f`
 
 4. **Install Virtual Environment**
 ```bash
@@ -76,7 +78,7 @@ pipenv shell
 
 6. **Install Python dependencies:**
 ```bash
-pip install -r requirements.txt
+pipenv install -r requirements.txt
 ```
 
 > [!NOTE]

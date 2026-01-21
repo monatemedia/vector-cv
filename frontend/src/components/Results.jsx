@@ -17,7 +17,7 @@ export default function Results({ result, apiUrl }) {
     <div className="max-w-6xl mx-auto space-y-6">
       {/* Success Message */}
       <div className="bg-[#549E06]/20 border border-[#95E913]/50 rounded-xl p-6 flex items-start gap-4">
-        <CheckCircle className="w-6 h-6 text-[#95E913] flex-shrink-0 mt-1" />
+        <CheckCircle className="w-6 h-6 text-[#95E913] shrink-0 mt-1" />
         <div>
           <h3 className="text-xl font-bold text-white mb-1">
             Application Generated Successfully!
@@ -88,7 +88,7 @@ export default function Results({ result, apiUrl }) {
                     key={i}
                     className="flex items-start gap-3 text-[#C6F486]"
                   >
-                    <div className="w-1.5 h-1.5 bg-[#ADB5D6] rounded-full mt-2 flex-shrink-0"></div>
+                    <div className="w-1.5 h-1.5 bg-[#ADB5D6] rounded-full mt-2 shrink-0"></div>
                     <span>{typeof rec === "string" ? rec : rec.details}</span>
                   </div>
                 ))}

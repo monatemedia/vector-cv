@@ -1,4 +1,5 @@
 from fastapi import FastAPI, Depends, HTTPException, Request
+from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse
 from sqlalchemy.orm import Session
@@ -21,6 +22,71 @@ from llm_service import (
 )
 from docx_generator import generate_cv_docx, generate_cover_letter_docx
 
+# --- Security Configuration ---
+security = HTTPBearer()
+ADMIN_KEY = os.getenv("ADMIN_API_KEY", "dev_secret")
+
+def verify_admin_key(auth: HTTPAuthorizationCredentials = Depends(security)):
+    """Authorize destructive or administrative actions"""
+    if auth.credentials != ADMIN_KEY:
+        raise HTTPException(
+            status_code=403,
+            detail="Unauthorized: Administrative access required."
+        )
+
+# Separate trackers for different tiers
+browse_tracker = defaultdict(list)  # For GET requests
+ai_tracker = defaultdict(list)      # For POST /api/applications
+
+def check_general_rate_limit(request: Request):
+    """60 requests per hour for browsing"""
+    if os.getenv("ENABLE_RATE_LIMITING", "false").lower() != "true": 
+        return
+    
+    # Standardize IP extraction
+    forwarded = request.headers.get("X-Forwarded-For")
+    client_ip = forwarded.split(",")[0] if forwarded else request.client.host
+    now = datetime.now()
+    
+    # 1. Clean and check (1 hour window)
+    browse_tracker[client_ip] = [t for t in browse_tracker[client_ip] if now - t < timedelta(hours=1)]
+    
+    # 2. Check limit
+    limit = int(os.getenv("GENERAL_RATE_LIMIT", "60"))
+    if len(browse_tracker[client_ip]) >= limit:
+        print(f"⚠️ General Rate Limit hit: {client_ip}")
+        raise HTTPException(
+            status_code=429, 
+            detail=f"Browsing limit of {limit} requests per hour reached."
+        )
+    
+    # 3. Log
+    browse_tracker[client_ip].append(now)
+
+def check_ai_usage_allowed(request: Request):
+    """Checks if the user has attempts left without consuming one"""
+    if os.getenv("ENABLE_RATE_LIMITING", "false").lower() != "true":
+        return
+    
+    forwarded = request.headers.get("X-Forwarded-For")
+    client_ip = forwarded.split(",")[0] if forwarded else request.client.host
+    now = datetime.now()
+    
+    # Clean old entries
+    ai_tracker[client_ip] = [t for t in ai_tracker[client_ip] if now - t < timedelta(days=1)]
+    
+    if len(ai_tracker[client_ip]) >= int(os.getenv("MAX_CV_PER_DAY", "3")):
+        raise HTTPException(status_code=429, detail="Daily AI generation limit reached.")
+
+def log_ai_usage_success(request: Request):
+    """Call this ONLY after a successful AI generation"""
+    if os.getenv("ENABLE_RATE_LIMITING", "false").lower() != "true":
+        return
+        
+    forwarded = request.headers.get("X-Forwarded-For")
+    client_ip = forwarded.split(",")[0] if forwarded else request.client.host
+    ai_tracker[client_ip].append(datetime.now())
+
 # Create the app with a dynamic root_path
 app = FastAPI(
     title="Vector CV API",
@@ -33,7 +99,11 @@ OUTPUT_DIR = "./generated_docs"
 os.makedirs(OUTPUT_DIR, exist_ok=True)
 
 # CORS Configuration
-origins = os.getenv("ALLOWED_ORIGINS", "http://localhost:3000").split(",")
+raw_origins = os.getenv("ALLOWED_ORIGINS", "http://localhost:3000").split(",")
+origins = [origin.strip() for origin in raw_origins]
+# Add common dev ports just in case
+if "http://localhost:3000" not in origins: origins.append("http://localhost:3000")
+if "http://localhost:5173" not in origins: origins.append("http://localhost:5173")
 
 app.add_middleware(
     CORSMiddleware,
@@ -42,42 +112,6 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
-
-# Simple rate limiting
-usage_tracker = defaultdict(list)
-MAX_REQUESTS_PER_DAY = int(os.getenv("MAX_CV_PER_DAY", "3"))
-
-# In main.py
-def check_rate_limit(request: Request):
-    """Check if client has exceeded daily rate limit using Real IP from Nginx"""
-    if os.getenv("ENABLE_RATE_LIMITING", "false").lower() != "true":
-        return
-
-    # 1. Get the real user IP from Nginx header (X-Forwarded-For)
-    forwarded = request.headers.get("X-Forwarded-For")
-    if forwarded:
-        client_ip = forwarded.split(",")[0]  # Get the first IP in the list
-    else:
-        client_ip = request.client.host
-
-    now = datetime.now()
-    
-    # 2. Clean old entries (keep only last 24h)
-    usage_tracker[client_ip] = [
-        timestamp for timestamp in usage_tracker[client_ip]
-        if now - timestamp < timedelta(days=1)
-    ]
-    
-    # 3. Check limit
-    if len(usage_tracker[client_ip]) >= MAX_REQUESTS_PER_DAY:
-        print(f"🚫 Rate limit BLOCKED: {client_ip}")
-        raise HTTPException(
-            status_code=429,
-            detail=f"Daily limit of {MAX_REQUESTS_PER_DAY} requests reached."
-        )
-    
-    # 4. Log this request
-    usage_tracker[client_ip].append(now)
 
 # --- Pydantic Models ---
 
@@ -256,7 +290,7 @@ def startup_event():
 
 # --- Endpoints ---
 
-@app.get("/")
+@app.get("/", dependencies=[Depends(check_general_rate_limit)])
 def read_root():
     return {
         "message": "Resume Synthesizer API",
@@ -267,7 +301,9 @@ def read_root():
     }
 
 # Personal Info
-@app.post("/api/personal-info", response_model=PersonalInfoResponse)
+@app.post("/api/personal-info", 
+        response_model=PersonalInfoResponse, 
+        dependencies=[Depends(verify_admin_key)])
 def create_personal_info(info: PersonalInfoCreate, db: Session = Depends(get_db)):
     existing = db.query(PersonalInfo).first()
     if existing:
@@ -283,7 +319,9 @@ def create_personal_info(info: PersonalInfoCreate, db: Session = Depends(get_db)
     db.refresh(db_info)
     return db_info
 
-@app.get("/api/personal-info", response_model=PersonalInfoResponse)
+@app.get("/api/personal-info", 
+        response_model=PersonalInfoResponse, 
+        dependencies=[Depends(check_general_rate_limit)])
 def get_personal_info(db: Session = Depends(get_db)):
     info = db.query(PersonalInfo).first()
     if not info:
@@ -292,7 +330,7 @@ def get_personal_info(db: Session = Depends(get_db)):
 
 # Experience Blocks
 @app.post("/api/experience-blocks", response_model=ExperienceBlockResponse, 
-          include_in_schema=False)
+          dependencies=[Depends(verify_admin_key)])
 def create_experience_block(exp: ExperienceBlockCreate, db: Session = Depends(get_db)):
     embedding = generate_embedding(exp.content)
     block_type_enum = BlockType(exp.block_type) if exp.block_type else BlockType.SUPPORTING_PROJECT
@@ -311,11 +349,14 @@ def create_experience_block(exp: ExperienceBlockCreate, db: Session = Depends(ge
     db.refresh(db_exp)
     return db_exp
 
-@app.get("/api/experience-blocks", response_model=List[ExperienceBlockResponse])
+@app.get("/api/experience-blocks", 
+        response_model=List[ExperienceBlockResponse],
+        dependencies=[Depends(check_general_rate_limit)])
 def list_experience_blocks(db: Session = Depends(get_db)):
     return db.query(ExperienceBlock).order_by(desc(ExperienceBlock.created_at)).all()
 
-@app.delete("/api/experience-blocks/{block_id}")
+@app.delete("/api/experience-blocks/{block_id}", 
+            dependencies=[Depends(verify_admin_key)])
 def delete_experience_block(block_id: uuid.UUID, db: Session = Depends(get_db)):
     block = db.query(ExperienceBlock).filter(ExperienceBlock.id == block_id).first()
     if not block:
@@ -325,12 +366,15 @@ def delete_experience_block(block_id: uuid.UUID, db: Session = Depends(get_db)):
     return {"message": "Deleted successfully"}
 
 # Applications
-@app.post("/api/applications", response_model=JobApplicationResponse, dependencies=[Depends(check_rate_limit)])
+@app.post("/api/applications", response_model=JobApplicationResponse)
 def create_job_application(
     app_data: JobApplicationCreate,
     request: Request,
-    db: Session = Depends(get_db)
-):
+    db: Session = Depends(get_db)):
+    
+    # 1. Check if allowed (Raises 429 if limit hit)
+    check_ai_usage_allowed(request)
+
     personal_info = db.query(PersonalInfo).first()
     if not personal_info:
         raise HTTPException(status_code=400, detail="Please add your personal info first")
@@ -366,13 +410,22 @@ def create_job_application(
     style_guidelines = db.query(StyleGuideline).filter(StyleGuideline.is_active == "true").all()
     style_dicts = [{"name": sg.name, "description": sg.description} for sg in style_guidelines]
     
-    print(f"📝 Generating CV with {len(experience_chunks)} blocks...")
-    skills_gap = analyze_skills_gap(experience_chunks, app_data.raw_spec)
-    cv = generate_tailored_cv(personal_dict, experience_chunks, app_data.raw_spec, style_dicts)
-    cover_letter = generate_cover_letter(
-        personal_dict, experience_chunks, app_data.raw_spec,
-        app_data.company_name, app_data.job_title
-    )
+    try:
+        print(f"📝 Generating CV with {len(experience_chunks)} blocks...")
+        skills_gap = analyze_skills_gap(experience_chunks, app_data.raw_spec)
+        cv = generate_tailored_cv(personal_dict, experience_chunks, app_data.raw_spec, style_dicts)
+        cover_letter = generate_cover_letter(
+            personal_dict, experience_chunks, app_data.raw_spec,
+            app_data.company_name, app_data.job_title
+        )
+        
+        # 2. SUCCESS! The AI actually worked. Log the usage now.
+        log_ai_usage_success(request)
+
+    except Exception as e:
+        print(f"❌ AI Generation failed: {e}")
+        # We DON'T log usage here, so the user keeps their credit
+        raise HTTPException(status_code=500, detail="AI generation failed. Please try again; your daily limit was not affected.")
     
     # Generate Word documents
     print(f"📄 Generating Word documents...")
@@ -407,12 +460,15 @@ def create_job_application(
     print(f"✅ Application created successfully\n")
     return response
 
-@app.get("/api/applications", response_model=List[JobApplicationResponse])
+@app.get("/api/applications", 
+        response_model=List[JobApplicationResponse],
+        dependencies=[Depends(check_general_rate_limit)])
 def list_applications(db: Session = Depends(get_db)):
     return db.query(JobApplication).order_by(desc(JobApplication.created_at)).all()
 
 # Download endpoints for Word documents
-@app.get("/api/download/cv/{application_id}")
+@app.get("/api/download/cv/{application_id}",
+        dependencies=[Depends(check_general_rate_limit)])
 def download_cv(application_id: uuid.UUID, db: Session = Depends(get_db)):
     """Download CV as Word document"""
     app = db.query(JobApplication).filter(JobApplication.id == application_id).first()
@@ -430,7 +486,8 @@ def download_cv(application_id: uuid.UUID, db: Session = Depends(get_db)):
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Failed to generate Word document: {str(e)}")
 
-@app.get("/api/download/cover-letter/{application_id}")
+@app.get("/api/download/cover-letter/{application_id}",
+        dependencies=[Depends(check_general_rate_limit)])
 def download_cover_letter(application_id: uuid.UUID, db: Session = Depends(get_db)):
     """Download cover letter as Word document"""
     app = db.query(JobApplication).filter(JobApplication.id == application_id).first()
@@ -449,7 +506,9 @@ def download_cover_letter(application_id: uuid.UUID, db: Session = Depends(get_d
         raise HTTPException(status_code=500, detail=f"Failed to generate Word document: {str(e)}")
 
 # Style Guidelines
-@app.post("/api/style-guidelines", response_model=StyleGuidelineResponse)
+@app.post("/api/style-guidelines", 
+          response_model=StyleGuidelineResponse, 
+          dependencies=[Depends(verify_admin_key)])
 def create_style_guideline(guideline: StyleGuidelineCreate, db: Session = Depends(get_db)):
     db_guideline = StyleGuideline(**guideline.dict())
     db.add(db_guideline)
@@ -457,9 +516,30 @@ def create_style_guideline(guideline: StyleGuidelineCreate, db: Session = Depend
     db.refresh(db_guideline)
     return db_guideline
 
-@app.get("/api/style-guidelines", response_model=List[StyleGuidelineResponse])
+@app.get("/api/style-guidelines", 
+        response_model=List[StyleGuidelineResponse], 
+        dependencies=[Depends(check_general_rate_limit)])
 def list_style_guidelines(db: Session = Depends(get_db)):
     return db.query(StyleGuideline).filter(StyleGuideline.is_active == "true").all()
+
+@app.get("/api/usage-stats")
+def get_usage_stats(request: Request):
+    """Returns remaining AI generations for the current user"""
+    forwarded = request.headers.get("X-Forwarded-For")
+    client_ip = forwarded.split(",")[0] if forwarded else request.client.host
+    
+    now = datetime.now()
+    # Sync the tracker (clean old entries)
+    ai_tracker[client_ip] = [t for t in ai_tracker[client_ip] if now - t < timedelta(days=1)]
+    
+    used = len(ai_tracker[client_ip])
+    max_allowed = int(os.getenv("MAX_CV_PER_DAY", "3"))
+    
+    return {
+        "used": used,
+        "remaining": max(0, max_allowed - used),
+        "limit": max_allowed
+    }
 
 # --- Runtime ---
 

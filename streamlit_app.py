@@ -11,6 +11,7 @@ load_dotenv()
 
 # --- 1. CONFIGURATION & AUTH SETUP ---
 API_URL = os.getenv("API_URL", "http://localhost:8010")
+ADMIN_KEY = os.getenv("ADMIN_API_KEY", "your_super_secret_key_here")
 
 st.set_page_config(
     page_title="Resume Synthesizer",
@@ -97,7 +98,8 @@ elif st.session_state["authentication_status"]:
 
     def api_post(endpoint, data):
         try:
-            response = requests.post(f"{API_URL}{endpoint}", json=data)
+            headers = {"Authorization": f"Bearer {ADMIN_KEY}"} # Add this
+            response = requests.post(f"{API_URL}{endpoint}", json=data, headers=headers)
             response.raise_for_status()
             return response.json()
         except Exception as e:
@@ -106,7 +108,8 @@ elif st.session_state["authentication_status"]:
 
     def api_delete(endpoint):
         try:
-            response = requests.delete(f"{API_URL}{endpoint}")
+            headers = {"Authorization": f"Bearer {ADMIN_KEY}"} # Add this
+            response = requests.delete(f"{API_URL}{endpoint}", headers=headers)
             response.raise_for_status()
             return response.json()
         except Exception as e:

@@ -23,6 +23,7 @@ const API_URL = import.meta.env.PROD
 
 function App() {
   const [activeTab, setActiveTab] = useState("about");
+  const [usage, setUsage] = useState({ used: 0, remaining: 3, limit: 3 });
   const [personalInfo, setPersonalInfo] = useState(null);
   const [experienceBlocks, setExperienceBlocks] = useState([]);
   const [result, setResult] = useState(null);
@@ -38,6 +39,7 @@ function App() {
   useEffect(() => {
     fetchPersonalInfo();
     fetchExperienceBlocks();
+    fetchUsage();
   }, []);
 
   const fetchPersonalInfo = async () => {
@@ -72,7 +74,6 @@ function App() {
 
     setLoading(true);
     setError(null);
-    setResult(null);
 
     try {
       const response = await fetch(`${API_URL}/api/applications`, {
@@ -82,17 +83,41 @@ function App() {
       });
 
       if (!response.ok) {
+        if (response.status === 429) {
+          // Friendly message for the 3-per-day limit
+          throw new Error(
+            "Daily limit reached: You can generate up to 3 CVs per day to help manage AI costs. Please try again tomorrow!",
+          );
+        }
         const errorData = await response.json();
         throw new Error(errorData.detail || "Failed to generate CV");
       }
 
       const data = await response.json();
       setResult(data);
+
+      // Refresh usage stats AFTER successful generation
+      await fetchUsage();
+
       setActiveTab("results");
     } catch (err) {
       setError(err.message);
+      // Refresh usage stats even on error just to be safe/synced
+      fetchUsage();
     } finally {
       setLoading(false);
+    }
+  };
+
+  const fetchUsage = async () => {
+    try {
+      const response = await fetch(`${API_URL}/api/usage-stats`);
+      if (response.ok) {
+        const data = await response.json();
+        setUsage(data);
+      }
+    } catch (err) {
+      console.error("Failed to fetch usage stats:", err);
     }
   };
 
@@ -171,6 +196,7 @@ function App() {
               loading={loading}
               error={error}
               onGenerate={handleGenerate}
+              usage={usage}
             />
           )}
           {activeTab === "results" && result && (
