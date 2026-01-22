@@ -1,0 +1,62 @@
+{
+  "personal_info": {
+    "name": "Your Full Name",
+    "email": "your.email@example.com",
+    "phone": "+1 234 567 8900",
+    "location": "City, State/Province, Country",
+    "linkedin": "https://www.linkedin.com/in/yourprofile",
+    "github": "https://github.com/yourusername",
+    "portfolio": "https://yourportfolio.com",
+    "summary": "Your professional summary here. This should be a compelling overview of your experience, skills, and career focus."
+  },
+  "experience_blocks": [
+    {
+      "title": "Technical Skills Portfolio",
+      "company": "Your Name",
+      "content": "**Backend:** List your backend skills here\n**Frontend:** List your frontend skills here\n**Databases:** List database technologies\n**DevOps:** List DevOps tools\n**Methodologies:** List methodologies you follow",
+      "tags": ["Skill1", "Skill2", "Skill3", "Technology1", "Technology2"],
+      "block_type": "skills_summary",
+      "priority": "1"
+    },
+    {
+      "title": "Your Major Project #1",
+      "company": "Company Name or Personal Project",
+      "content": "**Project Overview:** Describe your project here\n**Tech Stack:** Technologies used\n**Key Achievements:** What you accomplished\n**Impact:** The results of your work",
+      "tags": ["Technology1", "Technology2", "Skill1", "Skill2"],
+      "block_type": "pillar_project",
+      "priority": "1"
+    },
+    {
+      "title": "Your Major Project #2",
+      "company": "Company Name or Personal Project",
+      "content": "Detailed description of another important project",
+      "tags": ["Technology3", "Technology4", "Skill3"],
+      "block_type": "pillar_project",
+      "priority": "1"
+    },
+    {
+      "title": "Supporting Project Example",
+      "company": "Company Name or Personal Project",
+      "content": "Description of a supporting project that demonstrates specific skills",
+      "tags": ["Technology5", "Skill4"],
+      "block_type": "supporting_project",
+      "priority": "2"
+    },
+    {
+      "title": "Job Title",
+      "company": "Company Name",
+      "content": "**Key Responsibilities:** What you did in this role\n**Achievements:** What you accomplished\n**Technologies:** What you worked with\n**Duration:** Start Date – End Date (or Present)",
+      "tags": ["Technology6", "Technology7", "Skill5"],
+      "block_type": "employment",
+      "priority": "1"
+    },
+    {
+      "title": "Education & Certifications",
+      "company": "Academic Background",
+      "content": "**Degree Name** – Institution Name (Year)\n**Certification Name** – Issuing Organization (Year)\n**Online Certifications:** List relevant online courses or certifications",
+      "tags": ["Education", "Degree Type", "Certification1", "Certification2"],
+      "block_type": "education",
+      "priority": "1"
+    }
+  ]
+}
