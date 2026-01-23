@@ -318,7 +318,7 @@ def startup_event():
 @app.get("/", dependencies=[Depends(check_general_rate_limit)])
 def read_root():
     return {
-        "message": "Resume Synthesizer API",
+        "message": "Vector CV API",
         "docs": "/docs",
         "status": "running",
         "version": "2.0",

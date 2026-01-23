@@ -51,7 +51,7 @@ os.makedirs(BACKUP_DIR, exist_ok=True)
 os.makedirs(MY_DATA_DIR, exist_ok=True)
 
 st.set_page_config(
-    page_title="Resume Synthesizer",
+    page_title="Vector CV",
     page_icon="📄",
     layout="wide"
 )
@@ -77,7 +77,7 @@ stauth.Hasher.hash_passwords(credentials)
 # Initialize Authenticator
 authenticator = stauth.Authenticate(
     credentials,
-    os.getenv("COOKIE_NAME", "resume_synthesizer_auth"),
+    os.getenv("COOKIE_NAME", "vector_cv_auth"),
     os.getenv("COOKIE_KEY", "some_very_random_secret_string"),
     cookie_expiry_days=30
 )

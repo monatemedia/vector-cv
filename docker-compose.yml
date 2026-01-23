@@ -1,7 +1,7 @@
 services:
   postgres:
     image: pgvector/pgvector:pg17
-    container_name: resume_postgres
+    container_name: vector-cv-postgres
     env_file: .env
     environment:
       POSTGRES_USER: ${DB_USER}

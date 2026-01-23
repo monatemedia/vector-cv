@@ -175,7 +175,7 @@ Update `main.py` to allow the React frontend:
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-app = FastAPI(title="Resume Synthesizer API")
+app = FastAPI(title="Vector CV API")
 
 # Add CORS middleware
 app.add_middleware(
