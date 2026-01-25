@@ -1,13 +1,17 @@
-# My Environment Files
-.env
-prompt.txt
-/my_data/my_data.json
-Pipfile
-Pipfile.lock
+# Git files
+.git
+.gitignore
+.gitattributes
+
+# CI/CD
+.github
 
 # Documentation
+README.md
 DEPLOYMENT.md
 QUICK-REFERENCE.md
+LICENSE
+*.md
 
 # Python
 __pycache__
@@ -61,15 +65,24 @@ htmlcov/
 
 # Environment files
 .env.local
+.env.example
 .env.*.local
 
 # Deployment scripts (already in image via COPY)
+deploy-prod.sh
 test-local.sh
 setup-secrets.sh
+deploy.sh
 
 # Logs
 *.log
 logs/
+
+# Docker
+docker-compose.yml
+docker-compose.*.yml
+Dockerfile*
+.dockerignore
 
 # Generated files (created at runtime)
 generated_docs/
@@ -79,38 +92,3 @@ storage/
 tmp/
 temp/
 *.tmp
-
-# Other
-__pycache__/
-instance/
-outputs/
-*.sqlite3
-*.pyc
-*.pyo
-*.pyd
-*.db
-*.sqlite
-celerybeat-schedule
-lerna-debug.log**
-coverage/
-.nox/
-.coverage.*
-.cache
-nosetests.xml
-coverage.xml
-*.cover
-*.py,cover
-.pyre/
-.mypy_cache/
-.dmypy.json
-.pytype/
-.pyright/
-*.sublime-project
-*.sublime-workspace
-*.code-workspace
-tags
-debug.log
-*.pot
-*.mo
-*.log.*
-local_settings.py

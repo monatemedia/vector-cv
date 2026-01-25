@@ -2,58 +2,149 @@ services:
   postgres:
     image: pgvector/pgvector:pg17
     container_name: vector-cv-postgres
-    env_file: .env
+    restart: unless-stopped
     environment:
       POSTGRES_USER: ${DB_USER}
       POSTGRES_PASSWORD: ${DB_PASSWORD}
       POSTGRES_DB: ${DB_NAME}
-    ports:
-      - "${DB_PORT}:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
+    ports:
+      - "${DOCKER_POSTGRES_PORT:-5453}:5432"
+    networks:
+      - vector-cv-network
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U ${DB_USER} -d ${DB_NAME}"]
-      interval: 5s
+      interval: 10s
       timeout: 5s
       retries: 5
 
   backend:
-      build:
-        context: .
-        dockerfile: Dockerfile.backend
-      environment:
-        # Construct the URL using the service name 'postgres'
-        - DATABASE_URL=postgresql://${DB_USER}:${DB_PASSWORD}@postgres:5432/${DB_NAME}
-        - OPENAI_API_KEY=${OPENAI_API_KEY}
-      env_file:
-        - .env
-      depends_on:
-        postgres:
-          condition: service_healthy
-      volumes:
-        - ./generated_docs:/app/generated_docs
-
-  streamlit:
-    build:
-      context: .
-      dockerfile: Dockerfile.streamlit
-    env_file: .env
+    image: ${IMAGE_NAME}:${IMAGE_TAG:-production}
+    container_name: vector-cv-backend
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
     environment:
-      API_URL: http://backend:8010
+      # Auth Credentials
+      AUTH_USERNAME: ${AUTH_USERNAME}
+      AUTH_PASSWORD: ${AUTH_PASSWORD}
+      AUTH_NAME: ${AUTH_NAME}
+      AUTH_EMAIL: ${AUTH_EMAIL}
+      
+      # Cookie settings
+      COOKIE_NAME: ${COOKIE_NAME}
+      COOKIE_KEY: ${COOKIE_KEY}
+      
+      # Database
+      DB_USER: ${DB_USER}
+      DB_PASSWORD: ${DB_PASSWORD}
+      DB_HOST: postgres
+      DB_PORT: 5432
+      DB_NAME: ${DB_NAME}
+      
+      # Ports
+      BACKEND_PORT: 8010
+      
+      # API Configuration
+      PROXY_ROOT_PATH: ${PROXY_ROOT_PATH}
+      
+      # CORS
+      ALLOWED_ORIGINS: ${ALLOWED_ORIGINS}
+      
+      # Rate Limiting
+      ADMIN_API_KEY: ${ADMIN_API_KEY}
+      ENABLE_RATE_LIMITING: ${ENABLE_RATE_LIMITING:-true}
+      MAX_CV_PER_DAY: ${MAX_CV_PER_DAY:-3}
+      GENERAL_RATE_LIMIT: ${GENERAL_RATE_LIMIT:-60}
+      
+      # OpenAI
+      OPENAI_API_KEY: ${OPENAI_API_KEY}
+      
+      # Virtual Host for nginx-proxy
+      VIRTUAL_HOST: ${VIRTUAL_HOST}
+      VIRTUAL_PORT: 8010
+      LETSENCRYPT_HOST: ${VIRTUAL_HOST}
+      LETSENCRYPT_EMAIL: ${LETSENCRYPT_EMAIL}
     ports:
-      - "${STREAMLIT_PORT}:8501"
+      - "${DOCKER_BACKEND_PORT:-8200}:8010"
+    volumes:
+      - generated_docs:/app/generated_docs
+    networks:
+      - vector-cv-network
+      - proxy-network
+    command: uvicorn main:app --host 0.0.0.0 --port 8010
+
+  admin:
+    image: ${IMAGE_NAME}:${IMAGE_TAG:-production}
+    container_name: vector-cv-admin
+    restart: unless-stopped
     depends_on:
       - backend
+    environment:
+      # Auth Credentials
+      AUTH_USERNAME: ${AUTH_USERNAME}
+      AUTH_PASSWORD: ${AUTH_PASSWORD}
+      AUTH_NAME: ${AUTH_NAME}
+      AUTH_EMAIL: ${AUTH_EMAIL}
+      
+      # Cookie settings
+      COOKIE_NAME: ${COOKIE_NAME}
+      COOKIE_KEY: ${COOKIE_KEY}
+      
+      # Database
+      DB_USER: ${DB_USER}
+      DB_PASSWORD: ${DB_PASSWORD}
+      DB_HOST: postgres
+      DB_PORT: 5432
+      DB_NAME: ${DB_NAME}
+      
+      # Backend URL (internal)
+      BACKEND_URL: http://backend:8010
+      
+      # OpenAI
+      OPENAI_API_KEY: ${OPENAI_API_KEY}
+      
+      # Virtual Host for nginx-proxy
+      VIRTUAL_HOST: ${VIRTUAL_HOST}
+      VIRTUAL_PORT: 8501
+      LETSENCRYPT_HOST: ${VIRTUAL_HOST}
+      LETSENCRYPT_EMAIL: ${LETSENCRYPT_EMAIL}
+    ports:
+      - "${DOCKER_ADMIN_PORT:-8210}:8501"
+    volumes:
+      - generated_docs:/app/generated_docs
+    networks:
+      - vector-cv-network
+      - proxy-network
+    command: streamlit run streamlit_app.py --server.port=8501 --server.address=0.0.0.0 --server.baseUrlPath=/admin
 
   frontend:
-    build:
-      context: ./frontend
-      dockerfile: Dockerfile
-    ports:
-      - "${FRONTEND_PORT}:80"
+    image: ${IMAGE_NAME}:${IMAGE_TAG:-production}
+    container_name: vector-cv-frontend
+    restart: unless-stopped
     depends_on:
-      - streamlit
       - backend
+      - admin
+    environment:
+      # Virtual Host for nginx-proxy
+      VIRTUAL_HOST: ${VIRTUAL_HOST}
+      VIRTUAL_PORT: 80
+      LETSENCRYPT_HOST: ${VIRTUAL_HOST}
+      LETSENCRYPT_EMAIL: ${LETSENCRYPT_EMAIL}
+    ports:
+      - "${DOCKER_FRONTEND_PORT:-8220}:80"
+    networks:
+      - vector-cv-network
+      - proxy-network
 
 volumes:
   postgres_data:
+  generated_docs:
+
+networks:
+  vector-cv-network:
+    driver: bridge
+  proxy-network:
+    external: true
