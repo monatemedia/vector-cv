@@ -1,3 +1,11 @@
+# My Environment Files
+.env
+secrets.txt
+prompt.txt
+/my_data/my_data.json
+Pipfile
+Pipfile.lock
+
 # Git files
 .git
 .gitignore

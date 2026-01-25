@@ -125,16 +125,3 @@ The system uses **cosine similarity search** to find your most relevant experien
 2. Your experiences (already embedded) → ranked by similarity
 3. Top 5 most relevant → sent to Claude
 4. Claude generates targeted CV using only relevant info
-
-This means your "Auto Technician" experience won't show up for a Laravel job, but your "ActuallyFind marketplace" project will be front and center!
-
-## 🎯 Next Steps for Enhancement
-
-After testing the MVP, consider:
-- Replace the placeholder embedding function with a real model (OpenAI embeddings or sentence-transformers)
-- Add authentication for multi-user support
-- Export to PDF functionality
-- Email integration to track responses
-- Analytics dashboard showing which skills are most in-demand
-
-The architecture is solid and ready to scale! Test it out with the LekkeSlaap job and let me know how it works. 🚀
