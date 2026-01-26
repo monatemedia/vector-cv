@@ -26,7 +26,6 @@ RUN pip install --no-cache-dir -r requirements.txt
 # Copy Python application code
 COPY *.py ./
 COPY my_data/ ./my_data/
-COPY prompt.txt ./
 
 # Create directories
 RUN mkdir -p generated_docs
