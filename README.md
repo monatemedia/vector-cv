@@ -1,127 +1,73 @@
 # 📄 Vector CV: Resume Synthesizer
 
-An AI-powered RAG (Retrieval-Augmented Generation) system that stores your career history as vector embeddings and synthesizes tailored CVs and cover letters based on specific job descriptions.
+An advanced AI-powered **RAG (Retrieval-Augmented Generation)** system that transforms your career history into semantic vector embeddings. It intelligently synthesizes tailored CVs and cover letters by matching your professional DNA to specific job descriptions.
 
-## 🏗️ Architecture
+## 🏗️ System Architecture
 
-The system uses a modern RAG stack:
+Vector CV follows a modern, containerized microservices architecture:
 
-* **FastAPI:** High-performance backend.
-* **PostgreSQL + pgvector:** Vector database for semantic search.
-* **OpenAI (GPT-4o):** For synthesis and skills gap analysis.
-* **OpenAI (text-embedding-3-small):** To convert text into 1024-dimension vectors.
-* **Streamlit:** Admin frontend for easy interaction.
-* **React:** User frontend for user interaction.
+* **FastAPI Backend:** High-performance Python core handling business logic and LLM orchestration.
+* **PostgreSQL + pgvector:** Vector database performing high-speed **Cosine Similarity** searches.
+* **OpenAI GPT-4o:** Advanced synthesis engine for CV generation and skills gap analysis.
+* **OpenAI text-embedding-3-small:** Truncated to **1024-dimensional vectors** for an optimal balance of semantic accuracy and retrieval performance.
+* **React + Vite:** Responsive SPA (Single Page Application) for the end-user interface.
+* **Streamlit:** Internal administrative panel for master data management and system monitoring.
+* **Nginx Reverse Proxy:** Unified entry point handling SSL, WebSocket streams, and path-based routing.
 
-## 🎯 What You Got
+## 🚀 Key Features
 
-**6 Core Files:**
-1. **docker-compose.yml** - PostgreSQL with pgvector extension
-2. **requirements.txt** - All Python dependencies
-3. **.env.example** - Configuration template
-4. **models.py** - Database schema with vector embeddings
-5. **database.py** - Database connection and initialization
-6. **llm_service.py** - Claude AI integration for CV generation
-7. **main.py** - FastAPI backend with all endpoints
-8. **streamlit_app.py** - Beautiful admin web interface
-9. **App.jsx** - Beautiful user web interface
+* ✅ **Semantic Master Profile** – Store your work history as high-dimensional vectors.
+* ✅ **Hybrid Retrieval** – Combines vector similarity, keyword matching, and project priority logic.
+* ✅ **Dynamic CV Synthesis** – Generates resumes in your exact voice using few-shot prompting.
+* ✅ **Skills Gap Analysis** – Identifies missing requirements to help you prepare for interviews.
+* ✅ **Administrative Panel** – Full CRUD interface for experience blocks and style guidelines.
+* ✅ **Production Ready** – Multi-stage Docker builds with an automated Nginx orchestration.
 
-## 🚀 Key Features Implemented
+## 🛠️ Technical Implementation
 
-✅ **Master Profile Storage** - Store all your experiences with vector embeddings  
-✅ **Vector Similarity Search** - Uses pgvector to find most relevant experiences  
-✅ **Skills Gap Analysis** - Identifies what you're missing vs what job requires  
-✅ **Tailored CV Generation** - AI rewrites your CV for each specific job  
-✅ **Cover Letter Generation** - Personalized cover letters  
-✅ **Application Tracking** - Track status of each application  
-✅ **Style Guidelines** - Set rules for how CVs should be formatted  
+### The Vector Engine
 
-## 📦 Setup Instructions
+The system utilizes **Cosine Distance** calculations () to rank experience blocks.
 
-1. **Copy the files to your local machine**
+* **Embedding Model:** `text-embedding-3-small`
+* **Dimensions:** 1024 (Truncated for performance)
+* **Vector Ops:** Performed natively in SQL via `pgvector`.
+
+### DevOps & Orchestration
+
+The deployment is managed via a **Multi-stage Dockerfile**, separating the Node.js build environment from the Python production runtime to minimize image size and security surface area.
+
+## 📦 Rapid Deployment (Docker)
+
+1. **Clone the Repository:**
 ```bash
 git clone https://github.com/monatemedia/vector-cv.git
-```
-
-2. **Change directory into project folder:**
-```bash
 cd vector-cv
+
 ```
 
-1. **Create .env file:**
+
+2. **Configure Environment:**
 ```bash
 cp .env.example .env
-# Edit .env and add your ANTHROPIC_API_KEY
+# Add your OPENAI_API_KEY and Database credentials
+
 ```
 
-1. **Start PostgreSQL with pgvector:**
+
+3. **Launch the Stack:**
 ```bash
-# Check if Docker is running
-docker compose up -d
+# Deploy script
+./deploy.sh
+
 ```
 
-> [!NOTE]
-> To remove docker images use: 
-> - `docker compose down -v --rmi all`
-> To remove all stale docker images use (with caution)
-> - `docker system prune -f`
 
-4. **Install Virtual Environment**
-```bash
-pip install pipenv
-```
+*The system will be available at `http://localhost` (or your configured VIRTUAL_HOST).*
 
-5. **Create Virtual Environment**
-```bash
-pipenv shell
-```
+## 🎨 Workflow
 
-6. **Install Python dependencies:**
-```bash
-pipenv install -r requirements.txt
-```
-
-> [!NOTE]
-> To remove pipenv use: 
-> - `taskkill //F //IM python.exe //T` to stop all processes
-> - `pipenv --rm` to remove the pipenv packages
-
-7. **Start the FastAPI backend:**
-```bash
-python main.py
-```
-
-8. **In a new terminal, start Streamlit:**
-```bash
-pipenv shell
-streamlit run streamlit_app.py
-```
-
-9. **In a new terminal, import seeded data**
-```bash
-pipenv shell
-export $(grep -v '^#' .env | xargs) && python seed_data.py
-export $(grep -v '^#' .env | xargs) && python verify_setup.py
-```
-
-10. **In a new terminal, start the frontend**
-```sh
-npm run dev --prefix frontend
-```
-
-## 🎨 How to Use
-
-1. **Add Personal Info** - Your contact details and professional summary
-2. **Add Experience Blocks** - All your work history, projects, skills
-3. **Set Style Guidelines** (Optional) - "Keep CV to 2 pages", "Use STAR method", etc.
-4. **Create Application** - Paste job description from LekkeSlaap
-5. **Get Results** - Tailored CV, Cover Letter, and Skills Gap Analysis in under 60 seconds!
-
-## 🔍 About the pgvector Implementation
-
-The system uses **cosine similarity search** to find your most relevant experiences. When you paste a job description:
-
-1. Job description → converted to vector embedding
-2. Your experiences (already embedded) → ranked by similarity
-3. Top 5 most relevant → sent to Claude
-4. Claude generates targeted CV using only relevant info
+1. **Seed Data:** Input your contact details and professional summary.
+2. **Vectorize Experience:** Add work history blocks; the system automatically generates embeddings on save.
+3. **Define Style:** Set specific guardrails (e.g., "Must follow STAR method," "Limit to 2 pages").
+4. **Synthesize:** Paste a job description. The RAG engine retrieves the most relevant 1024d vectors and prompts GPT-4o to generate your tailored application materials.

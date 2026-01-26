@@ -75,24 +75,24 @@ export default function RagAI() {
             </h3>
             <div className="bg-black/30 p-4 rounded-lg border border-[#549E06]/30 space-y-3">
               <p>
-                <strong className="text-green-400">Backend:</strong> FastAPI,
-                Python, SQLAlchemy
+                <strong className="text-green-400">Architecture:</strong>{" "}
+                Microservices with Nginx Reverse Proxy
+              </p>
+              <p>
+                <strong className="text-green-400">Backend:</strong> FastAPI
+                (Python 3.12), SQLAlchemy, Uvicorn
               </p>
               <p>
                 <strong className="text-green-400">Database:</strong> PostgreSQL
-                16 with pgvector extension
+                17 + <code className="text-[#C6F486]">pgvector</code> extension
               </p>
               <p>
-                <strong className="text-green-400">AI:</strong> OpenAI GPT-4 and
-                text-embedding-3-small
+                <strong className="text-green-400">AI/LLM:</strong> GPT-4o &
+                text-embedding-3-small (1536d)
               </p>
               <p>
-                <strong className="text-green-400">Frontend:</strong> React,
-                Vite, Tailwind CSS
-              </p>
-              <p>
-                <strong className="text-green-400">DevOps:</strong> Docker,
-                Nginx, GitHub Actions
+                <strong className="text-green-400">DevOps:</strong> Multi-stage
+                Docker Builds, GitHub Actions CI/CD, Streamlit Admin
               </p>
             </div>
           </div>
