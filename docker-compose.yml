@@ -131,6 +131,7 @@ services:
     image: ${IMAGE_NAME}:${IMAGE_TAG:-production}
     container_name: vector-cv-frontend
     restart: unless-stopped
+    command: ["nginx", "-g", "daemon off;"]
     depends_on:
       backend:
         condition: service_healthy

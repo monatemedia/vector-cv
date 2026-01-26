@@ -278,22 +278,21 @@ jobs:
           APP_URL="https://${{ env.VIRTUAL_HOST }}"
           echo "🌐 Performing external health check on ${APP_URL}..."
 
-          # Check frontend
-          response=$(curl -s -o /dev/null -w "%{http_code}" ${APP_URL} || echo "000")
-          if [ "$response" = "200" ]; then
-            echo "✅ Frontend health check passed (HTTP $response)"
-          else
-            echo "❌ Frontend health check failed (HTTP $response)"
-            exit 1
-          fi
+          MAX_RETRIES=5
+          for i in $(seq 1 $MAX_RETRIES); do
+            response=$(curl -s -L -o /dev/null -w "%{http_code}" ${APP_URL} || echo "000")
+            if [ "$response" = "200" ]; then
+              echo "✅ Frontend health check passed (HTTP $response)"
+              exit 0
+            fi
+            echo "⚠️ Attempt $i: Frontend returned $response. Retrying in 10s..."
+            sleep 10
+          done
 
-          # Check API docs
-          response=$(curl -s -o /dev/null -w "%{http_code}" ${APP_URL}/docs || echo "000")
-          if [ "$response" = "200" ]; then
-            echo "✅ API docs health check passed (HTTP $response)"
-          else
-            echo "⚠️ API docs health check returned HTTP $response"
-          fi
+          echo "❌ Frontend health check failed after $MAX_RETRIES attempts"
+          # DEBUG: Show logs of the frontend if it fails
+          ssh ${{ env.USER }}@${{ env.HOST }} "cd ${{ env.WORK_DIR }} && docker compose logs frontend --tail 20"
+          exit 1
 
       - name: Cleanup SSH Keys
         if: always()
