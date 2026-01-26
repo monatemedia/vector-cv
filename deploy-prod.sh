@@ -72,15 +72,30 @@ echo "✅ Database is ready."
 # -------------------------------------------------------------
 echo "🛠️ Initializing database schema and seeding data..."
 
-# Run database initialization
-docker compose run --rm -T backend python -c "from database import init_db; init_db()"
+# Give database a bit more time to be fully ready
+sleep 5
+
+# Run database initialization with proper network connection
+docker compose run --rm -T \
+    -e DB_USER="${DB_USER}" \
+    -e DB_PASSWORD="${DB_PASSWORD}" \
+    -e DB_NAME="${DB_NAME}" \
+    -e DB_HOST=postgres \
+    -e DB_PORT=5432 \
+    backend python -c "from database import init_db; init_db()"
 
 if [ $? -eq 0 ]; then
     echo "✅ Database initialized successfully."
     
     # Run seeding
     echo "🌱 Seeding database..."
-    docker compose run --rm -T backend python seed_data.py
+    docker compose run --rm -T \
+        -e DB_USER="${DB_USER}" \
+        -e DB_PASSWORD="${DB_PASSWORD}" \
+        -e DB_NAME="${DB_NAME}" \
+        -e DB_HOST=postgres \
+        -e DB_PORT=5432 \
+        backend python seed_data.py
     
     if [ $? -eq 0 ]; then
         echo "✅ Database seeded successfully."
@@ -90,7 +105,13 @@ if [ $? -eq 0 ]; then
     
     # Verify setup
     echo "🔍 Verifying setup..."
-    docker compose run --rm -T backend python verify_setup.py
+    docker compose run --rm -T \
+        -e DB_USER="${DB_USER}" \
+        -e DB_PASSWORD="${DB_PASSWORD}" \
+        -e DB_NAME="${DB_NAME}" \
+        -e DB_HOST=postgres \
+        -e DB_PORT=5432 \
+        backend python verify_setup.py
     
     if [ $? -eq 0 ]; then
         echo "✅ Setup verification passed."
@@ -99,6 +120,10 @@ if [ $? -eq 0 ]; then
     fi
 else
     echo "❌ Database initialization failed!"
+    echo "Checking database connection..."
+    docker compose exec -T postgres pg_isready -U "${DB_USER}" -d "${DB_NAME}"
+    echo "Database logs:"
+    docker compose logs --tail=20 postgres
     exit 1
 fi
 

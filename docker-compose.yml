@@ -37,7 +37,7 @@ services:
       COOKIE_NAME: ${COOKIE_NAME}
       COOKIE_KEY: ${COOKIE_KEY}
       
-      # Database
+      # Database - CRITICAL: Must use 'postgres' as hostname
       DB_USER: ${DB_USER}
       DB_PASSWORD: ${DB_PASSWORD}
       DB_HOST: postgres
@@ -48,7 +48,7 @@ services:
       BACKEND_PORT: 8010
       
       # API Configuration
-      PROXY_ROOT_PATH: ${PROXY_ROOT_PATH}
+      PROXY_ROOT_PATH: ${PROXY_ROOT_PATH:-}
       
       # CORS
       ALLOWED_ORIGINS: ${ALLOWED_ORIGINS}
@@ -75,13 +75,20 @@ services:
       - vector-cv-network
       - proxy-network
     command: uvicorn main:app --host 0.0.0.0 --port 8010
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8010/docs"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
 
   admin:
     image: ${IMAGE_NAME}:${IMAGE_TAG:-production}
     container_name: vector-cv-admin
     restart: unless-stopped
     depends_on:
-      - backend
+      backend:
+        condition: service_healthy
     environment:
       # Auth Credentials
       AUTH_USERNAME: ${AUTH_USERNAME}
@@ -93,7 +100,7 @@ services:
       COOKIE_NAME: ${COOKIE_NAME}
       COOKIE_KEY: ${COOKIE_KEY}
       
-      # Database
+      # Database - CRITICAL: Must use 'postgres' as hostname
       DB_USER: ${DB_USER}
       DB_PASSWORD: ${DB_PASSWORD}
       DB_HOST: postgres
@@ -125,8 +132,8 @@ services:
     container_name: vector-cv-frontend
     restart: unless-stopped
     depends_on:
-      - backend
-      - admin
+      backend:
+        condition: service_healthy
     environment:
       # Virtual Host for nginx-proxy
       VIRTUAL_HOST: ${VIRTUAL_HOST}
