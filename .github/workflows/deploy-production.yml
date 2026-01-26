@@ -14,7 +14,7 @@ jobs:
     name: Build and Publish Docker Images
     runs-on: ubuntu-latest
     permissions:
-      contents: read
+      contents: write
       packages: write
     outputs:
       image-tag: ${{ steps.set-tag.outputs.tag }}
