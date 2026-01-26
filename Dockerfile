@@ -72,6 +72,9 @@ RUN rm /etc/nginx/sites-enabled/default || true
 # Copy built React app from builder stage
 COPY --from=frontend-builder /app/dist /usr/share/nginx/html
 
+# Ensure nginx can read the frontend files
+RUN chmod -R 755 /usr/share/nginx/html
+
 # Expose all ports (compose will map them)
 EXPOSE 8010 8501 80
 
