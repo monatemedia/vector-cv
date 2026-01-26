@@ -62,11 +62,6 @@ services:
       # OpenAI
       OPENAI_API_KEY: ${OPENAI_API_KEY}
       
-      # Virtual Host for nginx-proxy
-      VIRTUAL_HOST: ${VIRTUAL_HOST}
-      VIRTUAL_PORT: 8010
-      LETSENCRYPT_HOST: ${VIRTUAL_HOST}
-      LETSENCRYPT_EMAIL: ${LETSENCRYPT_EMAIL}
     ports:
       - "${DOCKER_BACKEND_PORT:-8200}:8010"
     volumes:
@@ -113,11 +108,6 @@ services:
       # OpenAI
       OPENAI_API_KEY: ${OPENAI_API_KEY}
       
-      # Virtual Host for nginx-proxy
-      VIRTUAL_HOST: ${VIRTUAL_HOST}
-      VIRTUAL_PORT: 8501
-      LETSENCRYPT_HOST: ${VIRTUAL_HOST}
-      LETSENCRYPT_EMAIL: ${LETSENCRYPT_EMAIL}
     ports:
       - "${DOCKER_ADMIN_PORT:-8210}:8501"
     volumes:

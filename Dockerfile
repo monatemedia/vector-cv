@@ -58,25 +58,23 @@ RUN npm run build
 # ============================================
 FROM python-base as production
 
-# Install nginx
 RUN apt-get update && apt-get install -y nginx && rm -rf /var/lib/apt/lists/*
 
-# 1. DELETE EVERY DEFAULT CONFIG
-RUN rm -rf /etc/nginx/sites-enabled/* && \
-    rm -rf /etc/nginx/sites-available/* && \
-    rm -rf /etc/nginx/conf.d/*
+# Clean out ALL default configs
+RUN rm -f /etc/nginx/sites-enabled/default /etc/nginx/conf.d/default.conf
 
-# 2. FORCE your config into the primary location
-COPY nginx.conf /etc/nginx/conf.d/default.conf
+# Copy your config
+COPY nginx.conf /etc/nginx/conf.d/vector.conf
 
-# 3. Copy React files
+# Copy React files
 COPY --from=frontend-builder /app/dist /usr/share/nginx/html
 
-# 4. PREVENT THE 404/CSS ISSUE: Ensure the directory exists and permissions are open
-RUN mkdir -p /usr/share/nginx/html/assets && \
-    chmod -R 755 /usr/share/nginx/html && \
-    chown -R www-data:www-data /usr/share/nginx/html
+# CRITICAL: Fix permissions for Nginx user (www-data)
+# 755 allows Nginx to "enter" the directories to find assets
+RUN chown -R www-data:www-data /usr/share/nginx/html && \
+    find /usr/share/nginx/html -type d -exec chmod 755 {} + && \
+    find /usr/share/nginx/html -type f -exec chmod 644 {} +
 
-EXPOSE 8010 8501 80
+EXPOSE 80 8010 8501
 
 CMD ["nginx", "-g", "daemon off;"]
