@@ -61,20 +61,22 @@ FROM python-base as production
 # Install nginx
 RUN apt-get update && apt-get install -y nginx && rm -rf /var/lib/apt/lists/*
 
-# 1. REMOVE all default debian nginx configs to prevent conflicts
-RUN rm /etc/nginx/sites-enabled/default && rm /etc/nginx/sites-available/default || true
+# 1. DELETE EVERY DEFAULT CONFIG
+RUN rm -rf /etc/nginx/sites-enabled/* && \
+    rm -rf /etc/nginx/sites-available/* && \
+    rm -rf /etc/nginx/conf.d/*
 
-# 2. Copy your custom config to the MAIN nginx path
-# We put it in conf.d which is included by the main nginx.conf
+# 2. FORCE your config into the primary location
 COPY nginx.conf /etc/nginx/conf.d/default.conf
 
-# 3. Copy built React app
+# 3. Copy React files
 COPY --from=frontend-builder /app/dist /usr/share/nginx/html
 
-# 4. Fix Permissions (Crucial for Nginx to read the files)
-RUN chown -R www-data:www-data /usr/share/nginx/html && \
-    chmod -R 755 /usr/share/nginx/html
+# 4. PREVENT THE 404/CSS ISSUE: Ensure the directory exists and permissions are open
+RUN mkdir -p /usr/share/nginx/html/assets && \
+    chmod -R 755 /usr/share/nginx/html && \
+    chown -R www-data:www-data /usr/share/nginx/html
 
 EXPOSE 8010 8501 80
 
-CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8010"]
+CMD ["nginx", "-g", "daemon off;"]
