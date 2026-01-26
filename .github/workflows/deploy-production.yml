@@ -234,7 +234,7 @@ jobs:
             DB_NAME=vector_cv_db
 
             # API Configuration
-            PROXY_ROOT_PATH=${{ secrets.PROXY_ROOT_PATH }}
+            PROXY_ROOT_PATH=/api
 
             # CORS Allowed Origins
             ALLOWED_ORIGINS=${{ secrets.ALLOWED_ORIGINS }}
