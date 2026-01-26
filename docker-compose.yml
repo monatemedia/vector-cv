@@ -126,11 +126,13 @@ services:
       - vector-cv-network
       - proxy-network
     command: >
-      streamlit run streamlit_app.py 
-      --server.port=8501 
-      --server.address=0.0.0.0 
-      --server.baseUrlPath=/admin 
+      streamlit run streamlit_app.py
+      --server.port=8501
+      --server.address=0.0.0.0
+      --server.baseUrlPath=/admin
       --server.enableCORS=false
+      --server.enableXsrfProtection=false
+      --browser.gatherUsageStats=false
 
   frontend:
     image: ${IMAGE_NAME}:${IMAGE_TAG:-production}

@@ -55,28 +55,26 @@ RUN npm run build
 
 # ============================================
 # Final Stage: Production Image
-# This single image contains all services
-# The docker-compose.yml determines which command runs
 # ============================================
 FROM python-base as production
 
-# Install nginx for frontend serving
-RUN apt-get update && apt-get install -y \
-    nginx \
-    && rm -rf /var/lib/apt/lists/*
+# Install nginx
+RUN apt-get update && apt-get install -y nginx && rm -rf /var/lib/apt/lists/*
 
-# Copy nginx configuration
+# 1. REMOVE all default debian nginx configs to prevent conflicts
+RUN rm /etc/nginx/sites-enabled/default && rm /etc/nginx/sites-available/default || true
+
+# 2. Copy your custom config to the MAIN nginx path
+# We put it in conf.d which is included by the main nginx.conf
 COPY nginx.conf /etc/nginx/conf.d/default.conf
-RUN rm /etc/nginx/sites-enabled/default || true
 
-# Copy built React app from builder stage
+# 3. Copy built React app
 COPY --from=frontend-builder /app/dist /usr/share/nginx/html
 
-# Ensure nginx can read the frontend files
-RUN chmod -R 755 /usr/share/nginx/html
+# 4. Fix Permissions (Crucial for Nginx to read the files)
+RUN chown -R www-data:www-data /usr/share/nginx/html && \
+    chmod -R 755 /usr/share/nginx/html
 
-# Expose all ports (compose will map them)
 EXPOSE 8010 8501 80
 
-# Default command (will be overridden by docker-compose)
 CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8010"]
