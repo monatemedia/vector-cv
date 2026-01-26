@@ -229,7 +229,6 @@ jobs:
             DB_PASSWORD=${{ secrets.DB_PASSWORD }}
             DB_HOST=postgres
             DB_PORT=5432
-            DB_DATABASE=vector_cv_db
             DB_NAME=vector_cv_db
 
             # API Configuration

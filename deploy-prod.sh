@@ -22,10 +22,12 @@ export IMAGE_TAG=${DEPLOY_TAG}
 echo "🏷️ Exported IMAGE_TAG=${IMAGE_TAG}"
 
 # -------------------------------------------------------------
-# 2. STOP EXISTING CONTAINERS
+# 2. STOP EXISTING CONTAINERS AND CLEAN UP
 # -------------------------------------------------------------
 echo "🛑 Stopping existing containers..."
-docker compose down || true
+docker compose down -v  # Remove volumes to ensure clean database
+
+echo "✅ Cleanup complete"
 
 # -------------------------------------------------------------
 # 3. ENSURE PROXY NETWORK EXISTS
