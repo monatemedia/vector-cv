@@ -8,7 +8,6 @@ on:
 
 env:
   REGISTRY: ghcr.io
-  IMAGE_NAME: ghcr.io/${{ github.actor }}/vector-cv
 
 jobs:
   build-and-publish:
@@ -20,12 +19,21 @@ jobs:
     outputs:
       image-tag: ${{ steps.set-tag.outputs.tag }}
       version-tag: ${{ steps.set-tag.outputs.version }}
+      image-name: ${{ steps.set-image-name.outputs.image_name }}
 
     steps:
       - name: Checkout Code
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
+
+      - name: Set image name to lowercase
+        id: set-image-name
+        run: |
+          IMAGE_NAME="ghcr.io/${{ github.repository_owner }}/vector-cv"
+          IMAGE_NAME_LOWER=$(echo "$IMAGE_NAME" | tr '[:upper:]' '[:lower:]')
+          echo "image_name=$IMAGE_NAME_LOWER" >> $GITHUB_OUTPUT
+          echo "Using image name: $IMAGE_NAME_LOWER"
 
       - name: Determine image tag and version
         id: set-tag
@@ -54,7 +62,7 @@ jobs:
 
       - name: Build and Push Docker Images
         run: |
-          FULL_IMAGE_NAME="${{ env.IMAGE_NAME }}"
+          FULL_IMAGE_NAME="${{ steps.set-image-name.outputs.image_name }}"
           TAG="${{ steps.set-tag.outputs.tag }}"
           VERSION="${{ steps.set-tag.outputs.version }}"
 
@@ -78,9 +86,9 @@ jobs:
         run: |
           echo "📌 Version: ${{ steps.set-tag.outputs.version }}"
           echo "🏷️  Image Tags:"
-          echo "   • ${{ env.IMAGE_NAME }}:${{ steps.set-tag.outputs.tag }}"
-          echo "   • ${{ env.IMAGE_NAME }}:v${{ steps.set-tag.outputs.version }}"
-          echo "   • ${{ env.IMAGE_NAME }}:${{ github.sha }}"
+          echo "   • ${{ steps.set-image-name.outputs.image_name }}:${{ steps.set-tag.outputs.tag }}"
+          echo "   • ${{ steps.set-image-name.outputs.image_name }}:v${{ steps.set-tag.outputs.version }}"
+          echo "   • ${{ steps.set-image-name.outputs.image_name }}:${{ github.sha }}"
 
   deploy-production:
     needs: build-and-publish
@@ -91,6 +99,7 @@ jobs:
 
     env:
       VERSION: ${{ needs.build-and-publish.outputs.version-tag }}
+      IMAGE_NAME: ${{ needs.build-and-publish.outputs.image-name }}
       HOST: ${{ secrets.HOST }}
       USER: ${{ secrets.USER }}
       SSH_KEY: ${{ secrets.SSH_KEY }}
@@ -191,7 +200,7 @@ jobs:
             # Docker Configuration
             DOCKER_CONTAINER_NAME=vector-cv
             ENVIRONMENT=production
-            IMAGE_NAME=${{ env.IMAGE_NAME }}
+            IMAGE_NAME=${{ needs.build-and-publish.outputs.image-name }}
             IMAGE_TAG=production
 
             # Domain Configuration
@@ -256,7 +265,7 @@ jobs:
         run: |
           ssh ${{ env.USER }}@${{ env.HOST }} \
             'cd ${{ env.WORK_DIR }} && \
-            export IMAGE_NAME="${{ env.IMAGE_NAME }}" && \
+            export IMAGE_NAME="${{ needs.build-and-publish.outputs.image-name }}" && \
             export VIRTUAL_HOST="${{ env.VIRTUAL_HOST }}" && \
             ./deploy-prod.sh'
 
