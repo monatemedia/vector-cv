@@ -106,6 +106,9 @@ services:
       API_URL: "http://backend:8010"
       BACKEND_URL: "http://backend:8010"
 
+      # Admin API Key
+      ADMIN_API_KEY: ${ADMIN_API_KEY}
+
       # OpenAI
       OPENAI_API_KEY: ${OPENAI_API_KEY}
       
