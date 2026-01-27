@@ -19,6 +19,74 @@ export default function RagAI() {
 
           <div>
             <h3 className="text-2xl font-bold text-[#C6F486] mb-3">
+              Why This Matters
+            </h3>
+            <p>
+              Traditional CV generation tools use templates. Vector CV
+              understands the <em>semantic relationship</em> between my
+              experience and job requirements, ensuring every CV highlights the
+              most relevant skills and projects. The result? CVs that pass ATS
+              systems and resonate with hiring managers.
+            </p>
+          </div>
+
+          <div>
+            <h3 className="text-2xl font-bold text-[#C6F486] mb-3">
+              The Problem It Solves
+            </h3>
+            <p>
+              Job hunting is tedious. Tailoring a CV for each application takes
+              30-60 minutes. Vector CV automates this while maintaining quality
+              by:
+            </p>
+            <ul className="list-disc list-inside space-y-2 mt-3">
+              <li>Automatically selecting the most relevant experience</li>
+              <li>Highlighting skills that match the job requirements</li>
+              <li>Maintaining consistent voice and formatting</li>
+              <li>Generating cover letters that reference specific projects</li>
+              <li>Providing skills gap analysis for self-improvement</li>
+            </ul>
+          </div>
+
+          <div>
+            <h3 className="text-2xl font-bold text-[#C6F486] mb-3">
+              Technical Implementation
+            </h3>
+            <div className="bg-black/30 p-4 rounded-lg border border-[#549E06]/30 space-y-3">
+              <p>
+                <strong className="text-green-400">Architecture:</strong>{" "}
+                Microservices with Nginx Reverse Proxy
+              </p>
+              <p>
+                <strong className="text-green-400">Frontend:</strong> React SPA,
+                Vite, Tailwind CSS, Lucide Icons
+              </p>
+              <p>
+                <strong className="text-green-400">Backend:</strong> FastAPI
+                (Python 3.12), SQLAlchemy, Uvicorn
+              </p>
+              <p>
+                <strong className="text-green-400">Database:</strong> PostgreSQL
+                17 + <code className="text-[#C6F486]">pgvector</code> extension
+                enabled
+              </p>
+              <p>
+                <strong className="text-green-400">AI/LLM:</strong> OpenAI
+                GPT-4o & text-embedding-3-small (1536d)
+              </p>
+              <p>
+                <strong className="text-green-400">DevOps:</strong> Multi-stage
+                Docker, GitHub Actions CI/CD, Streamlit
+              </p>
+              <p>
+                <strong className="text-green-400">Docker Stack:</strong>{" "}
+                Ubuntu, Python, PostgreSQL, Nginx, Let's Encrypt
+              </p>
+            </div>
+          </div>
+
+          <div>
+            <h3 className="text-2xl font-bold text-[#C6F486] mb-3">
               How Vector CV Works
             </h3>
             <ol className="list-decimal list-inside space-y-4">
@@ -54,65 +122,6 @@ export default function RagAI() {
                 writing style.
               </li>
             </ol>
-          </div>
-
-          <div>
-            <h3 className="text-2xl font-bold text-[#C6F486] mb-3">
-              Why This Matters
-            </h3>
-            <p>
-              Traditional CV generation tools use templates. Vector CV
-              understands the <em>semantic relationship</em> between your
-              experience and job requirements, ensuring every CV highlights the
-              most relevant skills and projects. The result? CVs that pass ATS
-              systems and resonate with hiring managers.
-            </p>
-          </div>
-
-          <div>
-            <h3 className="text-2xl font-bold text-[#C6F486] mb-3">
-              Technical Implementation
-            </h3>
-            <div className="bg-black/30 p-4 rounded-lg border border-[#549E06]/30 space-y-3">
-              <p>
-                <strong className="text-green-400">Architecture:</strong>{" "}
-                Microservices with Nginx Reverse Proxy
-              </p>
-              <p>
-                <strong className="text-green-400">Backend:</strong> FastAPI
-                (Python 3.12), SQLAlchemy, Uvicorn
-              </p>
-              <p>
-                <strong className="text-green-400">Database:</strong> PostgreSQL
-                17 + <code className="text-[#C6F486]">pgvector</code> extension
-              </p>
-              <p>
-                <strong className="text-green-400">AI/LLM:</strong> GPT-4o &
-                text-embedding-3-small (1536d)
-              </p>
-              <p>
-                <strong className="text-green-400">DevOps:</strong> Multi-stage
-                Docker Builds, GitHub Actions CI/CD, Streamlit Admin
-              </p>
-            </div>
-          </div>
-
-          <div>
-            <h3 className="text-2xl font-bold text-[#C6F486] mb-3">
-              The Problem It Solves
-            </h3>
-            <p>
-              Job hunting is tedious. Tailoring a CV for each application takes
-              30-60 minutes. Vector CV automates this while maintaining quality
-              by:
-            </p>
-            <ul className="list-disc list-inside space-y-2 mt-3">
-              <li>Automatically selecting the most relevant experience</li>
-              <li>Highlighting skills that match the job requirements</li>
-              <li>Maintaining consistent voice and formatting</li>
-              <li>Generating cover letters that reference specific projects</li>
-              <li>Providing skills gap analysis for self-improvement</li>
-            </ul>
           </div>
 
           <div className="mt-8 p-6 bg-gradient-to-r from-purple-500/10 to-blue-500/10 border border-[#549E06]/30 rounded-lg">

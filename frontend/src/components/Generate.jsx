@@ -11,12 +11,9 @@ export default function Generate({
   return (
     <div className="max-w-4xl mx-auto">
       <div className="text-center mb-12">
-        <h2 className="text-5xl font-bold text-white mb-4">
-          Generate AI-tailored CV
-        </h2>
+        <h2 className="text-5xl font-bold text-white mb-4">Generate CV</h2>
         <p className="text-xl text-purple-200 max-w-2xl mx-auto">
-          Paste any job description and get an AI-tailored CV and cover letter
-          for Edward in seconds
+          Generate a CV or browse the menu to learn more about Edward.
         </p>
       </div>
 
@@ -140,7 +137,7 @@ export default function Generate({
         </button>
 
         {/* The Usage Counter */}
-        <div className="mt-4 flex items-center gap-2">
+        <div className="mt-4 flex flex-col sm:flex-row items-center gap-2 sm:gap-2">
           <div className="flex gap-1">
             {/* Added safety check usage?.limit */}
             {[...Array(usage?.limit || 3)].map((_, i) => (
@@ -154,7 +151,7 @@ export default function Generate({
               />
             ))}
           </div>
-          <p className="text-xs text-gray-400 uppercase tracking-widest font-bold">
+          <p className="text-xs text-gray-400 uppercase tracking-widest font-bold text-center sm:text-left">
             {usage?.remaining ?? 3} of {usage?.limit ?? 3} Generations Left
             Today
           </p>

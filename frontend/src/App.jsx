@@ -7,6 +7,12 @@ import {
   Award,
   Target,
   FileText,
+  Menu,
+  MessageCircle,
+  Mail,
+  Github,
+  Linkedin,
+  Briefcase,
 } from "lucide-react";
 import ParticleBackground from "./components/ParticleBackground";
 import About from "./components/About";
@@ -22,7 +28,8 @@ const API_URL = import.meta.env.PROD
   : import.meta.env.VITE_API_URL || "http://localhost:8010";
 
 function App() {
-  const [activeTab, setActiveTab] = useState("about");
+  const [activeTab, setActiveTab] = useState("generate");
+  const [showMenu, setShowMenu] = useState(false);
   const [usage, setUsage] = useState({ used: 0, remaining: 3, limit: 3 });
   const [personalInfo, setPersonalInfo] = useState(null);
   const [experienceBlocks, setExperienceBlocks] = useState([]);
@@ -123,10 +130,10 @@ function App() {
 
   const tabs = [
     { id: "about", label: "About", icon: Info },
-    { id: "rag-ai", label: "RAG AI", icon: Brain },
     { id: "skills", label: "Skills", icon: Award },
     { id: "generate", label: "Generate", icon: Target },
     { id: "results", label: "Results", icon: FileText, disabled: !result },
+    { id: "rag-ai", label: "RAG AI", icon: Brain },
   ];
 
   return (
@@ -139,14 +146,18 @@ function App() {
         <header className="border-b border-[#549E06]/30 bg-black/40 backdrop-blur-md pointer-events-auto">
           <div className="max-w-7xl mx-auto px-6 py-6">
             <div className="flex items-center justify-between">
-              <div className="flex items-center gap-3">
+              {/* Made this div clickable to navigate to Generate tab */}
+              <div
+                className="flex items-center gap-3 cursor-pointer hover:opacity-80 transition-opacity"
+                onClick={() => setActiveTab("generate")}
+              >
                 <div className="w-12 h-12 bg-[#95E913] rounded-xl flex items-center justify-center shadow-lg shadow-[#95E913]/30">
                   <Sparkles className="w-7 h-7 text-black" />
                 </div>
                 <div>
                   <h1 className="text-2xl font-bold text-white">Vector CV</h1>
                   <p className="text-sm text-[#C6F486]">
-                    AI-Powered Resume Synthesizer
+                    Edward's AI-Powered Resume
                   </p>
                 </div>
               </div>
@@ -165,27 +176,63 @@ function App() {
         {/* Main Content */}
         <main className="max-w-7xl mx-auto px-6 py-12 pointer-events-auto">
           {/* Tabs */}
-          <div className="flex flex-wrap gap-2 mb-8 bg-black/50 p-2 rounded-xl w-fit mx-auto border border-[#549E06]/30 backdrop-blur-md">
-            {tabs.map(({ id, label, icon: Icon, disabled }) => (
+          <div className="mb-8">
+            {/* Desktop: Full tabs */}
+            <div className="hidden lg:flex flex-wrap gap-2 bg-black/50 p-2 rounded-xl w-fit mx-auto border border-[#549E06]/30 backdrop-blur-md">
+              {tabs.map(({ id, label, icon: Icon, disabled }) => (
+                <button
+                  key={id}
+                  onClick={() => setActiveTab(id)}
+                  disabled={disabled}
+                  className={`px-6 py-3 rounded-lg font-medium transition-all flex items-center gap-2 ${
+                    activeTab === id
+                      ? "bg-[#95E913] text-black shadow-lg shadow-[#95E913]/30"
+                      : "text-[#C6F486] hover:text-white hover:bg-[#549E06]/20 disabled:opacity-50 disabled:cursor-not-allowed"
+                  }`}
+                >
+                  <Icon className="w-5 h-5" />
+                  {label}
+                </button>
+              ))}
+            </div>
+
+            {/* Mobile: Hamburger menu */}
+            <div className="lg:hidden relative">
               <button
-                key={id}
-                onClick={() => setActiveTab(id)}
-                disabled={disabled}
-                className={`px-6 py-3 rounded-lg font-medium transition-all flex items-center gap-2 ${
-                  activeTab === id
-                    ? "bg-[#95E913] text-black shadow-lg shadow-[#95E913]/30"
-                    : "text-[#C6F486] hover:text-white hover:bg-[#549E06]/20 disabled:opacity-50 disabled:cursor-not-allowed"
-                }`}
+                onClick={() => setShowMenu(!showMenu)}
+                className="mx-auto flex items-center gap-2 px-6 py-3 rounded-lg font-medium bg-[#95E913] text-black shadow-lg shadow-[#95E913]/30"
               >
-                <Icon className="w-5 h-5" />
-                {label}
+                <Menu className="w-5 h-5" />
+                Menu
               </button>
-            ))}
+
+              {showMenu && (
+                <div className="absolute left-1/2 transform -translate-x-1/2 mt-2 bg-black/95 backdrop-blur-md border border-[#549E06]/30 rounded-xl overflow-hidden shadow-xl z-50 min-w-[200px]">
+                  {tabs.map(({ id, label, icon: Icon, disabled }) => (
+                    <button
+                      key={id}
+                      onClick={() => {
+                        setActiveTab(id);
+                        setShowMenu(false);
+                      }}
+                      disabled={disabled}
+                      className={`w-full px-6 py-3 font-medium transition-all flex items-center gap-2 border-b border-[#549E06]/20 last:border-b-0 ${
+                        activeTab === id
+                          ? "bg-[#95E913] text-black"
+                          : "text-[#C6F486] hover:text-white hover:bg-[#549E06]/20 disabled:opacity-50 disabled:cursor-not-allowed"
+                      }`}
+                    >
+                      <Icon className="w-5 h-5" />
+                      {label}
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
           </div>
 
           {/* Tab Content */}
           {activeTab === "about" && <About personalInfo={personalInfo} />}
-          {activeTab === "rag-ai" && <RagAI />}
           {activeTab === "skills" && (
             <Skills experienceBlocks={experienceBlocks} />
           )}
@@ -202,31 +249,68 @@ function App() {
           {activeTab === "results" && result && (
             <Results result={result} apiUrl={API_URL} />
           )}
+          {activeTab === "rag-ai" && <RagAI />}
         </main>
 
         {/* Footer */}
         <footer className="border-t border-[#549E06]/30 bg-black/40 backdrop-blur-md mt-20 pointer-events-auto">
           <div className="max-w-7xl mx-auto px-6 py-8">
-            <div className="flex items-center justify-between flex-wrap gap-4">
-              <p className="text-[#ADB5D6] text-sm">
-                Powered by OpenAI GPT-4 • Built by Edward Baitsewe
-              </p>
-              <div className="flex gap-4">
+            <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
+              {/* Text content - left side on desktop, stacks on mobile */}
+              <div className="text-center sm:text-left">
+                <p className="text-[#ADB5D6] text-sm">
+                  Powered by OpenAI GPT-4{" "}
+                  <span className="hidden sm:inline">•</span>
+                  <span className="block sm:inline sm:ml-1">
+                    Built by Edward Baitsewe
+                  </span>
+                </p>
+              </div>
+
+              {/* Icon links - right side on desktop */}
+              <div className="flex gap-4 items-center">
+                <a
+                  href="https://wa.me/27783245326"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-[#C6F486] hover:text-[#95E913] transition-colors"
+                  aria-label="WhatsApp"
+                >
+                  <MessageCircle className="w-5 h-5" />
+                </a>
+                <a
+                  href="mailto:edward@monatemedia.com"
+                  className="text-[#C6F486] hover:text-[#95E913] transition-colors"
+                  aria-label="Email"
+                >
+                  <Mail className="w-5 h-5" />
+                </a>
                 <a
                   href="https://github.com/monatemedia"
                   target="_blank"
                   rel="noopener noreferrer"
                   className="text-[#C6F486] hover:text-[#95E913] transition-colors"
+                  aria-label="GitHub"
                 >
-                  GitHub
+                  <Github className="w-5 h-5" />
                 </a>
                 <a
                   href="https://linkedin.com/in/edwardbaitsewe"
                   target="_blank"
                   rel="noopener noreferrer"
                   className="text-[#C6F486] hover:text-[#95E913] transition-colors"
+                  aria-label="LinkedIn"
                 >
-                  LinkedIn
+                  <Linkedin className="w-5 h-5" />
+                </a>
+                <a
+                  href="https://www.monatemedia.com/portfolio/"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-[#C6F486] hover:text-[#95E913] transition-colors"
+                  aria-label="Portfolio"
+                >
+                  <Briefcase className="w-5 h-5" />
                 </a>
               </div>
             </div>

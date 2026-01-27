@@ -1,4 +1,8 @@
+import { useState } from "react";
+
 export default function Skills({ experienceBlocks }) {
+  const [expandedBlocks, setExpandedBlocks] = useState({});
+
   const blockTypeLabels = {
     pillar_project: "⭐ Pillar Projects",
     supporting_project: "🔧 Supporting Projects",
@@ -22,13 +26,20 @@ export default function Skills({ experienceBlocks }) {
     return acc;
   }, {});
 
+  const toggleExpand = (blockId) => {
+    setExpandedBlocks((prev) => ({
+      ...prev,
+      [blockId]: !prev[blockId],
+    }));
+  };
+
   return (
     <div className="max-w-6xl mx-auto">
-      <div className="bg-black/60 backdrop-blur-md rounded-2xl border border-[#549E06]/30 p-8 shadow-2xl">
-        <h2 className="text-4xl font-bold text-white mb-4">
+      <div className="bg-black/60 backdrop-blur-md rounded-2xl border border-[#549E06]/30 p-4 sm:p-8 shadow-2xl">
+        <h2 className="text-3xl sm:text-4xl font-bold text-white mb-4">
           My Experience & Skills
         </h2>
-        <p className="text-gray-300 mb-8">
+        <p className="text-sm sm:text-base text-gray-300 mb-8">
           This is the complete knowledge base that the RAG system uses to
           generate tailored CVs. Each block is converted to a vector embedding
           for semantic search.
@@ -40,52 +51,70 @@ export default function Skills({ experienceBlocks }) {
 
           return (
             <div key={type} className="mb-8">
-              <h3 className="text-2xl font-bold text-[#C6F486] mb-4">
+              <h3 className="text-xl sm:text-2xl font-bold text-[#C6F486] mb-4">
                 {blockTypeLabels[type] || type}
               </h3>
 
               <div className="space-y-4">
-                {blocks.map((block) => (
-                  <div
-                    key={block.id}
-                    className="bg-white/5 border border-[#549E06]/30 rounded-lg p-6 hover:bg-white/10 transition-all"
-                  >
-                    <div className="flex items-start justify-between mb-3">
-                      <div>
-                        <h4 className="text-xl font-semibold text-white">
-                          {block.title}
-                        </h4>
-                        {block.company && (
-                          <p className="text-[#C6F486] mt-1">{block.company}</p>
+                {blocks.map((block) => {
+                  const isExpanded = expandedBlocks[block.id];
+                  const shouldTruncate = block.content.length > 500;
+                  const displayContent =
+                    isExpanded || !shouldTruncate
+                      ? block.content
+                      : `${block.content.substring(0, 500)}...`;
+
+                  return (
+                    <div
+                      key={block.id}
+                      className="bg-white/5 border border-[#549E06]/30 rounded-lg p-4 sm:p-6 hover:bg-white/10 transition-all"
+                    >
+                      <div className="flex items-start justify-between mb-3 gap-2">
+                        <div className="flex-1 min-w-0">
+                          <h4 className="text-lg sm:text-xl font-semibold text-white break-words">
+                            {block.title}
+                          </h4>
+                          {block.company && (
+                            <p className="text-sm sm:text-base text-[#C6F486] mt-1">
+                              {block.company}
+                            </p>
+                          )}
+                        </div>
+                        {block.priority && (
+                          <span className="text-xs px-2 sm:px-3 py-1 bg-[#549E06]/20 text-[#C6F486] rounded-full whitespace-nowrap">
+                            Priority {block.priority}
+                          </span>
                         )}
                       </div>
-                      {block.priority && (
-                        <span className="text-xs px-3 py-1 bg-[#549E06]/20 text-[#C6F486] rounded-full">
-                          Priority {block.priority}
-                        </span>
-                      )}
-                    </div>
 
-                    <div className="text-gray-300 mb-4 whitespace-pre-line">
-                      {block.content.length > 500
-                        ? `${block.content.substring(0, 500)}...`
-                        : block.content}
-                    </div>
-
-                    {block.metadata_tags && block.metadata_tags.length > 0 && (
-                      <div className="flex flex-wrap gap-2">
-                        {block.metadata_tags.map((tag, i) => (
-                          <span
-                            key={i}
-                            className="text-xs px-3 py-1 bg-[#9D6777]/20 text-blue-300 rounded-full border border-[#9D6777]/30"
+                      <div className="text-sm sm:text-base text-gray-300 mb-4 whitespace-pre-line">
+                        {displayContent}
+                        {shouldTruncate && (
+                          <button
+                            onClick={() => toggleExpand(block.id)}
+                            className="ml-2 text-[#95E913] hover:text-[#C6F486] font-medium transition-colors underline"
                           >
-                            {tag}
-                          </span>
-                        ))}
+                            {isExpanded ? "read less" : "read more"}
+                          </button>
+                        )}
                       </div>
-                    )}
-                  </div>
-                ))}
+
+                      {block.metadata_tags &&
+                        block.metadata_tags.length > 0 && (
+                          <div className="flex flex-wrap gap-2">
+                            {block.metadata_tags.map((tag, i) => (
+                              <span
+                                key={i}
+                                className="text-xs px-2 sm:px-3 py-1 bg-[#9D6777]/20 text-blue-300 rounded-full border border-[#9D6777]/30"
+                              >
+                                {tag}
+                              </span>
+                            ))}
+                          </div>
+                        )}
+                    </div>
+                  );
+                })}
               </div>
             </div>
           );
@@ -99,15 +128,15 @@ export default function Skills({ experienceBlocks }) {
           </div>
         )}
 
-        <div className="mt-8 p-6 bg-blue-500/10 border border-[#9D6777]/30 rounded-lg">
-          <h3 className="text-xl font-bold text-blue-300 mb-2">
+        <div className="mt-8 p-4 sm:p-6 bg-blue-500/10 border border-[#9D6777]/30 rounded-lg">
+          <h3 className="text-lg sm:text-xl font-bold text-blue-300 mb-2">
             How Selection Works
           </h3>
-          <p className="text-gray-300">
+          <p className="text-sm sm:text-base text-gray-300">
             When you generate a CV, the system analyzes the job description and
             selects 8-12 relevant blocks using:
           </p>
-          <ul className="list-disc list-inside mt-3 space-y-1 text-gray-300">
+          <ul className="list-disc list-inside mt-3 space-y-1 text-sm sm:text-base text-gray-300">
             <li>
               <strong>Pillar projects</strong> are always included
             </li>
