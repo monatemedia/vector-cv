@@ -48,7 +48,7 @@ services:
       BACKEND_PORT: 8010
       
       # API Configuration
-      PROXY_ROOT_PATH: ${PROXY_ROOT_PATH:-}
+      # PROXY_ROOT_PATH: ${PROXY_ROOT_PATH}
       
       # CORS
       ALLOWED_ORIGINS: ${ALLOWED_ORIGINS}
