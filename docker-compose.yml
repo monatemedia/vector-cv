@@ -103,8 +103,9 @@ services:
       DB_NAME: ${DB_NAME}
       
       # Backend URL (internal)
-      BACKEND_URL: http://backend:8010
-      
+      API_URL: "http://backend:8010"
+      BACKEND_URL: "http://backend:8010"
+
       # OpenAI
       OPENAI_API_KEY: ${OPENAI_API_KEY}
       

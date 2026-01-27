@@ -43,7 +43,7 @@ def log_failed_login():
     login_attempts[client_ip].append(datetime.now())
 
 # --- 1. CONFIGURATION & AUTH SETUP ---
-API_URL = os.getenv("API_URL", "http://localhost:8010")
+API_URL = os.getenv("API_URL", "http://backend:8010")
 ADMIN_KEY = os.getenv("ADMIN_API_KEY", "your_super_secret_key_here")
 BACKUP_DIR = "./backups"
 MY_DATA_DIR = "./my_data"
