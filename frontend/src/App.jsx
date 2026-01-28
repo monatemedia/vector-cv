@@ -145,8 +145,8 @@ function App() {
         {/* Header */}
         <header className="border-b border-[#549E06]/30 bg-black/40 backdrop-blur-md pointer-events-auto">
           <div className="max-w-7xl mx-auto px-6 py-6">
-            <div className="flex items-center justify-between">
-              {/* Made this div clickable to navigate to Generate tab */}
+            <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
+              {/* Logo and title - clickable to navigate to Generate tab */}
               <div
                 className="flex items-center gap-3 cursor-pointer hover:opacity-80 transition-opacity"
                 onClick={() => setActiveTab("generate")}
@@ -161,8 +161,13 @@ function App() {
                   </p>
                 </div>
               </div>
+
+              {/* User name - clickable to go to About page */}
               {personalInfo && (
-                <div className="flex items-center gap-3 bg-[#542C3C]/50 px-4 py-2 rounded-lg border border-[#9D6777]/30 backdrop-blur-sm">
+                <div
+                  className="flex items-center gap-3 bg-[#542C3C]/50 px-4 py-2 rounded-lg border border-[#9D6777]/30 backdrop-blur-sm cursor-pointer hover:opacity-80 transition-opacity"
+                  onClick={() => setActiveTab("about")}
+                >
                   <User className="w-5 h-5 text-[#ADB5D6]" />
                   <span className="text-white font-medium">
                     {personalInfo.name}
