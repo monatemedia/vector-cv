@@ -99,9 +99,9 @@ export default function Results({ result, apiUrl }) {
       )}
 
       {/* CV */}
-      <div className="bg-black/60 backdrop-blur-md rounded-2xl border border-[#549E06]/30 p-8">
-        <div className="flex items-center justify-between mb-6">
-          <h3 className="text-2xl font-bold text-white flex items-center gap-3">
+      <div className="bg-black/60 backdrop-blur-md rounded-2xl border border-[#549E06]/30 p-4 sm:p-8">
+        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-6">
+          <h3 className="text-xl sm:text-2xl font-bold text-white flex items-center gap-3">
             <FileText className="w-6 h-6 text-[#95E913]" />
             Tailored CV
           </h3>
@@ -112,18 +112,18 @@ export default function Results({ result, apiUrl }) {
             buttonColor="purple"
           />
         </div>
-        <div className="bg-[#542C3C]/20 rounded-lg p-6 border border-[#549E06]/30">
+        <div className="bg-[#542C3C]/20 rounded-lg p-4 sm:p-6 border border-[#549E06]/30 overflow-hidden">
           <div
-            className="markdown-content text-gray-300"
+            className="markdown-content text-gray-300 break-words"
             dangerouslySetInnerHTML={renderMarkdownAsHTML(result.generated_cv)}
           />
         </div>
       </div>
 
       {/* Cover Letter */}
-      <div className="bg-black/60 backdrop-blur-md rounded-2xl border border-[#549E06]/30 p-8">
-        <div className="flex items-center justify-between mb-6">
-          <h3 className="text-2xl font-bold text-white flex items-center gap-3">
+      <div className="bg-black/60 backdrop-blur-md rounded-2xl border border-[#549E06]/30 p-4 sm:p-8">
+        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-6">
+          <h3 className="text-xl sm:text-2xl font-bold text-white flex items-center gap-3">
             <Briefcase className="w-6 h-6 text-[#ADB5D6]" />
             Cover Letter
           </h3>
@@ -134,9 +134,9 @@ export default function Results({ result, apiUrl }) {
             buttonColor="blue"
           />
         </div>
-        <div className="bg-[#542C3C]/20 rounded-lg p-6 border border-[#549E06]/30">
+        <div className="bg-[#542C3C]/20 rounded-lg p-4 sm:p-6 border border-[#549E06]/30 overflow-hidden">
           <div
-            className="markdown-content text-gray-300"
+            className="markdown-content text-gray-300 break-words"
             dangerouslySetInnerHTML={renderMarkdownAsHTML(
               result.generated_cover_letter,
             )}
