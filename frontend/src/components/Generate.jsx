@@ -126,7 +126,7 @@ export default function Generate({
           {loading ? (
             <>
               <Loader className="w-5 h-5 animate-spin" />
-              Generating Your Perfect Application...
+              Please wait...
             </>
           ) : (
             <>

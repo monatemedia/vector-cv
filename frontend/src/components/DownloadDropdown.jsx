@@ -54,12 +54,12 @@ export default function DownloadDropdown({
     purple: {
       button:
         "bg-[#549E06]/20 hover:bg-purple-500/30 border-[#549E06]/30 text-[#C6F486]",
-      dropdown: "bg-[#542C3C]/20 border-[#549E06]/30",
+      dropdown: "bg-[#542C3C] border-[#549E06]/50",
     },
     blue: {
       button:
         "bg-[#9D6777]/20 hover:bg-blue-500/30 border-[#9D6777]/30 text-blue-300",
-      dropdown: "bg-blue-500/10 border-[#9D6777]/30",
+      dropdown: "bg-[#542C3C] border-[#9D6777]/50",
     },
   };
 
@@ -90,7 +90,7 @@ export default function DownloadDropdown({
 
           {/* Dropdown */}
           <div
-            className={`absolute right-0 mt-2 w-56 ${colors.dropdown} border rounded-lg shadow-xl z-20 overflow-hidden`}
+            className={`absolute right-0 mt-2 w-56 ${colors.dropdown} border rounded-lg shadow-xl z-20 overflow-hidden backdrop-blur-md`}
           >
             <button
               onClick={downloadWord}

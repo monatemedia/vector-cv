@@ -33,8 +33,8 @@ export default function Results({ result, apiUrl }) {
 
       {/* Skills Gap Analysis */}
       {result.skills_gap_report && (
-        <div className="bg-black/60 backdrop-blur-md rounded-2xl border border-[#549E06]/30 p-8">
-          <h3 className="text-2xl font-bold text-white mb-6 flex items-center gap-3">
+        <div className="bg-black/60 backdrop-blur-md rounded-2xl border border-[#549E06]/30 p-4 sm:p-8">
+          <h3 className="text-xl sm:text-2xl font-bold text-white mb-6 flex items-center gap-3">
             <Target className="w-6 h-6 text-[#95E913]" />
             Skills Gap Analysis
           </h3>
