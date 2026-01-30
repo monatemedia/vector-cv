@@ -4,12 +4,13 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse
 from sqlalchemy.orm import Session
 from sqlalchemy import desc
-from pydantic import BaseModel
+from pydantic import BaseModel, validator
 from typing import List, Optional, Dict
 from datetime import datetime, timedelta
 import uuid
 import os
 import json
+import re
 from collections import defaultdict
 from database import get_db, init_db
 from models import (
@@ -179,6 +180,35 @@ class JobApplicationCreate(BaseModel):
     job_title: str
     raw_spec: str
     job_url: Optional[str] = None
+    
+    @validator('company_name', 'job_title')
+    def sanitize_text_fields(cls, v):
+        if v:
+            # Remove any control characters and excessive whitespace
+            v = re.sub(r'[\x00-\x1f\x7f-\x9f]', '', v)
+            # Normalize whitespace
+            v = ' '.join(v.split())
+            # Limit length
+            return v[:200]
+        return v
+    
+    @validator('job_url')
+    def sanitize_url(cls, v):
+        if v:
+            # Basic URL sanitization
+            v = v.strip()
+            # Limit length
+            return v[:500]
+        return v
+    
+    @validator('raw_spec')
+    def sanitize_spec(cls, v):
+        if v:
+            # Remove control characters but keep newlines and tabs
+            v = re.sub(r'[\x00-\x08\x0b-\x0c\x0e-\x1f\x7f-\x9f]', '', v)
+            # Limit length to prevent abuse
+            return v[:50000]
+        return v
 
 class JobApplicationUpdate(BaseModel):
     status: Optional[str] = None

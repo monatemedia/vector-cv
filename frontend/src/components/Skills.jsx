@@ -1,4 +1,5 @@
 import { useState } from "react";
+import ContentRenderer from "./ContentRenderer";
 
 export default function Skills({ experienceBlocks }) {
   const [expandedBlocks, setExpandedBlocks] = useState({});
@@ -67,7 +68,7 @@ export default function Skills({ experienceBlocks }) {
                   return (
                     <div
                       key={block.id}
-                      className="bg-white/5 border border-[#549E06]/30 rounded-lg p-4 sm:p-6 hover:bg-white/10 transition-all"
+                      className="bg-white/5 border border-[#549E06]/30 rounded-lg p-4 sm:p-6"
                     >
                       <div className="flex items-start justify-between mb-3 gap-2">
                         <div className="flex-1 min-w-0">
@@ -87,8 +88,9 @@ export default function Skills({ experienceBlocks }) {
                         )}
                       </div>
 
-                      <div className="text-sm sm:text-base text-gray-300 mb-4 whitespace-pre-line">
-                        {displayContent}
+                      {/* Use ContentRenderer instead of whitespace-pre-line */}
+                      <div className="text-sm sm:text-base text-gray-300">
+                        <ContentRenderer content={displayContent} />
                         {shouldTruncate && (
                           <button
                             onClick={() => toggleExpand(block.id)}
@@ -101,7 +103,7 @@ export default function Skills({ experienceBlocks }) {
 
                       {block.metadata_tags &&
                         block.metadata_tags.length > 0 && (
-                          <div className="flex flex-wrap gap-2">
+                          <div className="flex flex-wrap gap-2 mt-4">
                             {block.metadata_tags.map((tag, i) => (
                               <span
                                 key={i}

@@ -1,8 +1,12 @@
+# Ignore my data
+/my_data/*
+# Except example data file
+!/my_data/my_data.json.example
+
 # My Environment Files
 .env
 secrets.txt
 prompt.txt
-/my_data/my_data.json
 Pipfile
 Pipfile.lock
 

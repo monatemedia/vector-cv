@@ -5,24 +5,20 @@ import {
   FileText,
   Briefcase,
 } from "lucide-react";
-import { marked } from "marked";
+import ContentRenderer from "./ContentRenderer";
 import DownloadDropdown from "./DownloadDropdown";
 
 export default function Results({ result, apiUrl }) {
-  const renderMarkdownAsHTML = (markdown) => {
-    return { __html: marked.parse(markdown) };
-  };
-
   return (
     <div className="max-w-6xl mx-auto space-y-6">
       {/* Success Message */}
-      <div className="bg-[#549E06]/20 border border-[#95E913]/50 rounded-xl p-6 flex items-start gap-4">
+      <div className="bg-[#549E06]/20 border border-[#95E913]/50 rounded-xl p-4 sm:p-6 flex items-start gap-4">
         <CheckCircle className="w-6 h-6 text-[#95E913] shrink-0 mt-1" />
         <div>
-          <h3 className="text-xl font-bold text-white mb-1">
+          <h3 className="text-lg sm:text-xl font-bold text-white mb-1">
             Application Generated Successfully!
           </h3>
-          <p className="text-[#C6F486]">
+          <p className="text-sm sm:text-base text-[#C6F486]">
             Your tailored CV and cover letter for{" "}
             <span className="font-semibold">{result.job_title}</span> at{" "}
             <span className="font-semibold">{result.company_name}</span> are
@@ -41,7 +37,7 @@ export default function Results({ result, apiUrl }) {
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
             <div>
-              <h4 className="text-lg font-semibold text-[#95E913] mb-3 flex items-center gap-2">
+              <h4 className="text-base sm:text-lg font-semibold text-[#95E913] mb-3 flex items-center gap-2">
                 <CheckCircle className="w-5 h-5" />
                 Matching Skills
               </h4>
@@ -49,17 +45,17 @@ export default function Results({ result, apiUrl }) {
                 {result.skills_gap_report.matching_skills?.map((skill, i) => (
                   <div
                     key={i}
-                    className="flex items-center gap-2 text-[#C6F486]"
+                    className="flex items-center gap-2 text-sm sm:text-base text-[#C6F486]"
                   >
-                    <div className="w-1.5 h-1.5 bg-[#95E913] rounded-full"></div>
-                    {skill}
+                    <div className="w-1.5 h-1.5 bg-[#95E913] rounded-full shrink-0"></div>
+                    <span className="break-words">{skill}</span>
                   </div>
                 ))}
               </div>
             </div>
 
             <div>
-              <h4 className="text-lg font-semibold text-amber-400 mb-3 flex items-center gap-2">
+              <h4 className="text-base sm:text-lg font-semibold text-amber-400 mb-3 flex items-center gap-2">
                 <AlertCircle className="w-5 h-5" />
                 Skills to Develop
               </h4>
@@ -67,10 +63,10 @@ export default function Results({ result, apiUrl }) {
                 {result.skills_gap_report.missing_skills?.map((skill, i) => (
                   <div
                     key={i}
-                    className="flex items-center gap-2 text-amber-300"
+                    className="flex items-center gap-2 text-sm sm:text-base text-amber-300"
                   >
-                    <div className="w-1.5 h-1.5 bg-amber-400 rounded-full"></div>
-                    {skill}
+                    <div className="w-1.5 h-1.5 bg-amber-400 rounded-full shrink-0"></div>
+                    <span className="break-words">{skill}</span>
                   </div>
                 ))}
               </div>
@@ -79,17 +75,19 @@ export default function Results({ result, apiUrl }) {
 
           {result.skills_gap_report.recommendations && (
             <div>
-              <h4 className="text-lg font-semibold text-[#ADB5D6] mb-3">
+              <h4 className="text-base sm:text-lg font-semibold text-[#ADB5D6] mb-3">
                 Recommendations
               </h4>
               <div className="space-y-2">
                 {result.skills_gap_report.recommendations.map((rec, i) => (
                   <div
                     key={i}
-                    className="flex items-start gap-3 text-[#C6F486]"
+                    className="flex items-start gap-3 text-sm sm:text-base text-[#ADB5D6]"
                   >
                     <div className="w-1.5 h-1.5 bg-[#ADB5D6] rounded-full mt-2 shrink-0"></div>
-                    <span>{typeof rec === "string" ? rec : rec.details}</span>
+                    <span className="break-words">
+                      {typeof rec === "string" ? rec : rec.details}
+                    </span>
                   </div>
                 ))}
               </div>
@@ -112,11 +110,10 @@ export default function Results({ result, apiUrl }) {
             buttonColor="purple"
           />
         </div>
-        <div className="bg-[#542C3C]/20 rounded-lg p-4 sm:p-6 border border-[#549E06]/30 overflow-hidden">
-          <div
-            className="markdown-content text-gray-300 break-words"
-            dangerouslySetInnerHTML={renderMarkdownAsHTML(result.generated_cv)}
-          />
+        <div className="bg-white/5 border border-[#549E06]/30 rounded-lg p-4 sm:p-6">
+          <div className="text-sm sm:text-base text-gray-300">
+            <ContentRenderer content={result.generated_cv} />
+          </div>
         </div>
       </div>
 
@@ -134,13 +131,10 @@ export default function Results({ result, apiUrl }) {
             buttonColor="blue"
           />
         </div>
-        <div className="bg-[#542C3C]/20 rounded-lg p-4 sm:p-6 border border-[#549E06]/30 overflow-hidden">
-          <div
-            className="markdown-content text-gray-300 break-words"
-            dangerouslySetInnerHTML={renderMarkdownAsHTML(
-              result.generated_cover_letter,
-            )}
-          />
+        <div className="bg-white/5 border border-[#549E06]/30 rounded-lg p-4 sm:p-6">
+          <div className="text-sm sm:text-base text-gray-300">
+            <ContentRenderer content={result.generated_cover_letter} />
+          </div>
         </div>
       </div>
     </div>

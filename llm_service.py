@@ -30,7 +30,7 @@ def generate_embedding(text: str) -> List[float]:
 def extract_skills_from_job(job_description: str) -> List[str]:
     """Extract technical skills and technologies from job description"""
     prompt = f"""Extract ONLY the technical skills, technologies, tools, and frameworks from this job description.
-    
+
     Be specific and include:
     - Programming languages (PHP, Python, JavaScript, etc.)
     - Frameworks (Laravel, React, Vue, Django, etc.)
@@ -38,16 +38,16 @@ def extract_skills_from_job(job_description: str) -> List[str]:
     - Tools (Docker, Git, Nginx, etc.)
     - Cloud platforms (AWS, Azure, etc.)
     - Methodologies (CI/CD, DevOps, etc.)
-    
+
     Return ONLY a JSON object with a "skills" array of strings.
-    
+
     Job Description:
     {job_description}
-    
+
     Example output format:
     {{"skills": ["React", "Docker", "PostgreSQL", "AWS", "Laravel"]}}
     """
-    
+
     try:
         response = client.chat.completions.create(
             model="gpt-4-turbo-preview",
@@ -67,7 +67,7 @@ def analyze_skills_gap(candidate_chunks: List[Dict], job_description: str) -> Di
         f"**{chunk['title']} at {chunk['company']}**\n{chunk['content']}\nSkills: {', '.join(chunk['metadata_tags'])}"
         for chunk in candidate_chunks
     ])
-    
+
     prompt = f"""You are a Technical Lead analyzing a candidate for a role.
 
 CANDIDATE EXPERIENCE:
@@ -84,7 +84,7 @@ Return ONLY valid JSON:
     "partial_matches": [],
     "recommendations": []
 }}"""
-    
+
     try:
         response = client.chat.completions.create(
             model="gpt-4-turbo-preview",
@@ -103,21 +103,49 @@ def generate_tailored_cv(
     job_description: str,
     style_guidelines: List[Dict] = None) -> str:
     """Generate a tailored CV matching Edward's exact style and voice"""
-    
+
     chunks_text = "\n\n".join([
         f"BLOCK: {chunk['title']} at {chunk['company']}\nCONTENT: {chunk['content']}\nTAGS: {', '.join(chunk['metadata_tags'])}"
         for chunk in relevant_chunks
     ])
-    
+
     guidelines_text = "\n".join([f"- {g['name']}: {g['description']}" for g in (style_guidelines or [])])
-    
-    system_prompt = """You are Edward Baitsewe's CV writer. Your job is to mimic his EXACT writing style and formatting.
+
+    system_prompt = """You are Edward Baitsewe's expert CV writer. Your job is to mimic his EXACT writing style and formatting.
 
 CRITICAL ANTI-FABRICATION RULES:
 1. SOURCE OF TRUTH: Use ONLY the provided candidate data blocks. If information is not explicitly in the data, DO NOT INCLUDE IT.
 2. NO INVENTED CREDENTIALS: Never invent degrees, certifications, company names, dates, or project names.
-3. NO PLACEHOLDER DATES: If dates are not provided, omit them entirely. Do not use "2018-Present" or similar unless explicitly given.
+3. NO PLACEHOLDER DATES: If dates are not provided, omit them entirely. Do not use "2018-Present" or similar unless explicitly given.       
 4. NO GENERIC CERTIFICATIONS: Do not add "Certified Laravel Developer" or similar unless explicitly listed in the data.
+
+MARKDOWN FORMATTING RULES - CRITICAL:
+1. NEVER use bullet points to introduce sub-projects
+2. Each project is a top-level section with its own **Project Name** header
+3. Projects MUST NOT be indented or nested under other projects
+4. Use horizontal rules (---) to separate major sections, but NOT between individual projects
+5. Leave ONE blank line between projects for separation
+
+WRONG (nested projects):
+**ActuallyFind – DevOps**
+* Infrastructure
+  **Project CRM** 
+  * Features
+
+CORRECT (separate projects):
+**ActuallyFind – DevOps**
+* Infrastructure features
+
+**Project CRM**
+* CRM features
+
+MARKDOWN LINK FORMATTING RULES:
+1. For project titles, use: **[Project Name] – [Type]**
+2. For buttons/actions IMMEDIATELY after a project's content, use: [Label](URL) - e.g., [Website](https://example.com) [GitHub](https://github.com/user/repo)
+3. Place buttons RIGHT AFTER the project's bullet points, BEFORE the next project header
+4. If a URL has already been used for one project, DO NOT include it again for another project
+5. For table URLs, use backticks: `https://example.com` or `user@example.com`
+6. NEVER use bare URLs outside of tables
 
 EDWARD'S CV STYLE FINGERPRINT:
 - Uses emoji section markers: 🔹 for sections
@@ -158,20 +186,37 @@ STRUCTURE TEMPLATE (Follow this EXACTLY):
 ---
 
 ## 🔹 Key Projects
-[Project listings with this format]
 
-**[Project Name] – [Type]** | [URL if provided]
+**[Project Name A] – [Type]**
 
 * **[Category]:** [Achievement with metrics]
 * **[Category]:** [Achievement with metrics]
 
-[If demo credentials exist in source data, include this table:]
-| Field | Value |
-|-------|-------|
-| URL | [url] |
-| Email | [email] |
-| Password | [password] |
-| Test VIN | [vin if applicable] |
+[Website](url) [GitHub](url) [Demo](url)
+
+[If demo credentials exist, include table here]
+
+**[Project Name B] – [Type]**
+
+* **[Category]:** [Achievement]
+* **[Category]:** [Achievement]
+
+[GitHub](url) [Live](url)
+
+**[Project Name C] – [Type]**
+
+* **[Category]:** [Achievement]
+
+[GitHub](url)
+
+CRITICAL PROJECT SEPARATION RULES:
+1. Each project MUST start with "**[Project Name]**" on its own line with NO indentation
+2. Project content bullets have NO indentation - everything starts at column 0
+3. Links for Project A come RIGHT AFTER Project A's content, BEFORE the next project header
+4. NEVER combine multiple projects under one header
+5. Add ONE blank line between projects for separation
+6. If a link URL has already been used for one project, do NOT include it again for another project
+7. Each project stands alone - no nesting, no grouping under bullets
 
 ---
 
@@ -209,7 +254,7 @@ The summary should be MOSTLY fixed but with ONE sentence tailored to the job. St
 Example for a Laravel/Marketplace role:
 "Full stack developer with 5 years of experience building and deploying scalable webapps. Expert in the **Laravel** ecosystem with a deep focus on search optimization, geospatial data, and CI/CD automation. Former financial advisor with over a decade track record of high-stakes stakeholder management and client service excellence."
 """
-    
+
     user_prompt = f"""
 CANDIDATE DATA:
 Name: {personal_info.get('name')}
@@ -234,13 +279,16 @@ CRITICAL INSTRUCTIONS:
 1. Include ALL contact links in the header (LinkedIn, Portfolio, GitHub) - DO NOT OMIT THE PORTFOLIO URL
 2. In the Summary, identify the 1-2 most relevant aspects of the job and highlight those specific skills
 3. For each project, use the EXACT formatting from the source blocks - don't expand or reword
-4. If a source block includes GitHub links or demo credentials, INCLUDE THEM VERBATIM
-5. Keep bullet points CONCISE - one line when possible
-6. NO PASSIVE VOICE - use direct action verbs
-7. Extract education from the "Education & Certifications" block if present
-8. Prioritize projects by relevance to this specific job
+4. If a source block includes links or demo credentials, INCLUDE THEM VERBATIM immediately after that project's content
+5. Keep button links with their respective projects - never move them to the bottom
+6. If a URL has already been used for one project, do NOT include it again for another project
+7. Keep bullet points CONCISE - one line when possible
+8. NO PASSIVE VOICE - use direct action verbs
+9. Extract education from the "Education & Certifications" block if present
+10. Prioritize projects by relevance to this specific job
+11. NEVER nest projects under other projects - each project is its own top-level section
 """
-    
+
     try:
         response = client.chat.completions.create(
             model="gpt-4-turbo-preview",
@@ -261,13 +309,25 @@ def generate_cover_letter(
     company_name: str,
     job_title: str) -> str:
     """Generate a cover letter using Edward's 'DNA matching' strategy"""
-    
+
     chunks_text = "\n\n".join([
         f"PROJECT: {chunk['title']}\nDETAILS: {chunk['content']}"
         for chunk in relevant_chunks[:3]
     ])
-    
+
+    # Extract candidate's actual skills from chunks
+    candidate_tags = []
+    for chunk in relevant_chunks:
+        candidate_tags.extend(chunk.get('metadata_tags', []))
+    candidate_skills = list(set(candidate_tags))  # Remove duplicates
+
     system_prompt = """You are Edward Baitsewe's cover letter writer. Your job is to use his "DNA MATCHING" strategy.
+
+CRITICAL SKILLS GAP AWARENESS:
+You must be HONEST about the candidate's skills. Use ONLY skills that appear in the candidate's project tags.
+NEVER claim proficiency in skills the candidate doesn't have.
+If the job requires skills the candidate lacks, focus on TRANSFERABLE skills and genuine enthusiasm to learn.
+Be confident about what the candidate CAN do, honest about what they're still developing.
 
 EDWARD'S COVER LETTER VOICE:
 - Conversational but professional (peer-to-peer, engineer to engineer)
@@ -275,6 +335,7 @@ EDWARD'S COVER LETTER VOICE:
 - Specific technical details (actual tech stacks, not "modern practices")
 - Shows domain knowledge (understands their product/challenges)
 - Uses active voice exclusively
+- HONEST about skill gaps while emphasizing transferable experience
 
 FORBIDDEN PHRASES (NEVER USE THESE):
 - "vibrant tech scene" / "remarkable journey" / "deeply immersed"
@@ -283,6 +344,7 @@ FORBIDDEN PHRASES (NEVER USE THESE):
 - "look forward to the possibility of discussing"
 - "contribute meaningfully"
 - Any passive constructions
+- Claims of expertise in skills not in the candidate's tags
 
 STRATEGY STRUCTURE:
 ```
@@ -295,15 +357,15 @@ Dear [Name],
 
 [HOOK - 2-3 sentences showing domain expertise and why you care about their product]
 
-[DNA MATCH - Show how YOUR specific project shares technical DNA with THEIR challenges. Be concrete.]
+[DNA MATCH - Show how YOUR specific project shares technical DNA with THEIR challenges. Be concrete. Use ONLY skills the candidate actually has.]
 
-[BONUS SKILLS - Address "Bonus" requirements from job description with specific examples]
+[BONUS SKILLS - Address "Bonus" requirements from job description with HONEST assessment - if you have the skill, show it; if not, acknowledge transferable skills]
 
 [PROFESSIONAL MATURITY - One paragraph on the financial background as a differentiator]
 
-[FORWARD-LOOKING - Show excitement about specific tech initiatives they mentioned]
+[FORWARD-LOOKING - Show genuine excitement about learning new technologies if needed, or contributing existing expertise]
 
-Thank you for your time and for considering my application. I look forward to discussing how my experience with [specific tech] can contribute to [Company]'s continued success.
+Thank you for your time and for considering my application. I look forward to discussing how my experience with [specific tech the candidate ACTUALLY knows] can contribute to [Company]'s continued success.
 
 Best regards,
 
@@ -312,11 +374,14 @@ Edward Baitsewe
 edward@monatemedia.com
 ```
 """
-    
+
     user_prompt = f"""
 CANDIDATE: {personal_info.get('name')}
 LOCATION: {personal_info.get('location')}
 JOB: {job_title} at {company_name}
+
+CANDIDATE'S ACTUAL SKILLS (ONLY use these):
+{', '.join(candidate_skills)}
 
 CANDIDATE'S RELEVANT PROJECTS:
 {chunks_text}
@@ -326,16 +391,18 @@ JOB DESCRIPTION:
 
 INSTRUCTIONS:
 1. HOOK: Identify their technical DNA. Open with domain knowledge.
-2. DNA MATCH: Find Edward's project that matches their DNA. Draw SPECIFIC technical parallels.
-3. BONUS SKILLS: Quote "Bonus" if they use that word. Address requirements with examples.
-4. PROFESSIONAL MATURITY: Mention the 10-year financial services background.
-5. FORWARD-LOOKING: Express genuine excitement about their initiatives.
-6. CLOSING: "Thank you for your time and for considering my application. I look forward to discussing how my experience with [specific tech/domain] can contribute to [Company]'s continued success."
-7. Keep under 400 words.
-8. Use bold for technologies (**Laravel**, **Docker**)
-9. NO PASSIVE VOICE
+2. DNA MATCH: Find Edward's project that matches their DNA. Draw SPECIFIC technical parallels using ONLY skills from the candidate's actual skills list.
+3. BONUS SKILLS: Quote "Bonus" if they use that word. Be HONEST - if the candidate has the skill, show concrete examples. If not, acknowledge transferable experience.
+4. NEVER claim expertise in technologies not in the candidate's skills list.
+5. PROFESSIONAL MATURITY: Mention the 10-year financial services background.
+6. FORWARD-LOOKING: If there are skill gaps, show enthusiasm to learn. If skills match well, express excitement about contributing.
+7. CLOSING: "Thank you for your time and for considering my application. I look forward to discussing how my experience with [specific tech FROM candidate's skills] can contribute to [Company]'s continued success."
+8. Keep under 400 words.
+9. Use bold for technologies (**Laravel**, **Docker**) but ONLY for technologies the candidate actually knows.
+10. NO PASSIVE VOICE
+11. BE HONEST - integrity matters more than claiming false expertise
 """
-    
+
     try:
         response = client.chat.completions.create(
             model="gpt-4-turbo-preview",

@@ -176,3 +176,78 @@ body {
 .glow-plum {
   box-shadow: 0 0 20px rgba(157, 103, 119, 0.3);
 }
+
+/* 6. TABLE STYLES */
+.markdown-content table {
+  width: auto;
+  max-width: 100%;
+  margin: 1.5rem auto; /* Center the table */
+  border-collapse: collapse;
+  display: table;
+}
+
+.markdown-content th,
+.markdown-content td {
+  padding: 0.75rem 1rem;
+  border: 1px solid rgba(84, 158, 6, 0.3);
+  text-align: left;
+}
+
+.markdown-content th {
+  background: rgba(84, 158, 6, 0.15);
+  color: var(--color-lime);
+  font-weight: 600;
+  text-transform: uppercase;
+  font-size: 0.875rem;
+  letter-spacing: 0.05em;
+}
+
+.markdown-content td {
+  background: rgba(0, 0, 0, 0.2);
+}
+
+.markdown-content tbody tr:hover {
+  background: rgba(84, 158, 6, 0.05);
+}
+
+/* Make table responsive on mobile */
+@media (max-width: 640px) {
+  .markdown-content table {
+    font-size: 0.875rem;
+  }
+  
+  .markdown-content th,
+  .markdown-content td {
+    padding: 0.5rem;
+  }
+}
+
+/* 7. Proper Heading & Paragraph Spacing */
+.markdown-content h1:first-child,
+.markdown-content h2:first-child,
+.markdown-content h3:first-child {
+  margin-top: 0;
+}
+
+.markdown-content p:last-child {
+  margin-bottom: 0;
+}
+
+/* Ensure proper spacing between all elements */
+.markdown-content > * + * {
+  margin-top: 1rem;
+}
+
+.markdown-content > h1 + *,
+.markdown-content > h2 + * {
+  margin-top: 1.5rem;
+}
+
+/* Lists should have spacing */
+.markdown-content ul + p,
+.markdown-content ol + p,
+.markdown-content p + ul,
+.markdown-content p + ol {
+  margin-top: 1rem;
+}
+
