@@ -1,18 +1,34 @@
-/* 1. COLOR PALETTE */
+/* Tailwind must be first — this was previously in index.css */
+@import "tailwindcss";
+
+/* 1. COLOR PALETTE & ROOT */
 :root {
+  /* App palette */
   --color-lime: #95E913;
   --color-green: #549E06;
   --color-mint: #C6F486;
   --color-plum: #542C3C;
   --color-mauve: #9D6777;
   --color-lavender: #ADB5D6;
-  
-  /* Background colors */
+
+  /* Background & text (App.css versions win on duplicates) */
   --bg-black: #000000;
-  
-  /* Text colors */
   --text-gray-100: #f3f4f6;
   --text-gray-300: #d1d5db;
+
+  /* Variables from index.css — kept in case they're referenced elsewhere */
+  --bg-slate-900: #0f172a;
+  --purple-300: #d8b4fe;
+  --purple-400: #c084fc;
+  --blue-400: #60a5fa;
+
+  /* Rendering hints from index.css */
+  font-synthesis: none;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  line-height: 1.5;
+  font-weight: 400;
 }
 
 /* 2. GLOBAL RESET & BASE */
@@ -78,6 +94,7 @@ body {
   margin-bottom: 0.5rem;
 }
 
+/* Prose links: lime text + underline */
 .markdown-content a {
   color: var(--color-lime);
   text-decoration: underline;
@@ -85,6 +102,21 @@ body {
 
 .markdown-content a:hover {
   color: var(--color-mint);
+}
+
+/* Button links opt out of the prose-link styles above.
+   Every button <a> carries the "border" class as part of its base structure,
+   so this selector targets buttons specifically.
+   Specificity: 0-2-1 (.markdown-content + a.border) beats 0-2-0 (.markdown-content a),
+   letting each button's own Tailwind color class (text-blue-300, text-purple-300, etc.)
+   take effect uncontested. */
+.markdown-content a.border {
+  color: inherit;
+  text-decoration: none;
+}
+
+.markdown-content a.border:hover {
+  color: inherit;
 }
 
 .markdown-content code {
@@ -108,24 +140,6 @@ body {
   margin: 1.5rem 0;
 }
 
-.markdown-content table {
-  width: 100%;
-  margin: 1rem 0;
-  border-collapse: collapse;
-}
-
-.markdown-content th,
-.markdown-content td {
-  padding: 0.5rem;
-  border: 1px solid rgba(84, 158, 6, 0.2);
-}
-
-.markdown-content th {
-  background: rgba(84, 158, 6, 0.1);
-  color: var(--color-lime);
-  font-weight: 600;
-}
-
 .markdown-content blockquote {
   border-left: 4px solid var(--color-green);
   padding-left: 1rem;
@@ -134,54 +148,13 @@ body {
   margin: 1rem 0;
 }
 
-/* 4. ANIMATIONS & SCROLLBAR */
-@keyframes pulse {
-  0%, 100% { opacity: 1; }
-  50% { opacity: 0.5; }
-}
-
-.animate-pulse {
-  animation: pulse 4s cubic-bezier(0.4, 0, 0.6, 1) infinite;
-}
-
-::-webkit-scrollbar {
-  width: 10px;
-  height: 10px;
-}
-
-::-webkit-scrollbar-track {
-  background: var(--bg-black);
-}
-
-::-webkit-scrollbar-thumb {
-  background: rgba(84, 158, 6, 0.5);
-  border-radius: 10px;
-}
-
-::-webkit-scrollbar-thumb:hover {
-  background: rgba(149, 233, 19, 0.7);
-}
-
-/* 5. UTILITY CLASSES */
-.glass-card {
-  background: rgba(0, 0, 0, 0.6);
-  backdrop-filter: blur(10px);
-  border: 1px solid rgba(84, 158, 6, 0.2);
-}
-
-.glow-green {
-  box-shadow: 0 0 20px rgba(149, 233, 19, 0.3);
-}
-
-.glow-plum {
-  box-shadow: 0 0 20px rgba(157, 103, 119, 0.3);
-}
-
-/* 6. TABLE STYLES */
+/* 4. TABLE STYLES
+   (consolidated — the later rules in the original App.css overrode the
+   earlier ones, so only the final intended versions are kept here) */
 .markdown-content table {
   width: auto;
   max-width: 100%;
-  margin: 1.5rem auto; /* Center the table */
+  margin: 1.5rem auto;
   border-collapse: collapse;
   display: table;
 }
@@ -210,19 +183,61 @@ body {
   background: rgba(84, 158, 6, 0.05);
 }
 
-/* Make table responsive on mobile */
 @media (max-width: 640px) {
   .markdown-content table {
     font-size: 0.875rem;
   }
-  
+
   .markdown-content th,
   .markdown-content td {
     padding: 0.5rem;
   }
 }
 
-/* 7. Proper Heading & Paragraph Spacing */
+/* 5. ANIMATIONS & SCROLLBAR */
+@keyframes pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.5; }
+}
+
+.animate-pulse {
+  animation: pulse 4s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+}
+
+::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+
+::-webkit-scrollbar-track {
+  background: var(--bg-black);
+}
+
+::-webkit-scrollbar-thumb {
+  background: rgba(84, 158, 6, 0.5);
+  border-radius: 10px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(149, 233, 19, 0.7);
+}
+
+/* 6. UTILITY CLASSES */
+.glass-card {
+  background: rgba(0, 0, 0, 0.6);
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(84, 158, 6, 0.2);
+}
+
+.glow-green {
+  box-shadow: 0 0 20px rgba(149, 233, 19, 0.3);
+}
+
+.glow-plum {
+  box-shadow: 0 0 20px rgba(157, 103, 119, 0.3);
+}
+
+/* 7. HEADING & PARAGRAPH SPACING */
 .markdown-content h1:first-child,
 .markdown-content h2:first-child,
 .markdown-content h3:first-child {
@@ -233,7 +248,6 @@ body {
   margin-bottom: 0;
 }
 
-/* Ensure proper spacing between all elements */
 .markdown-content > * + * {
   margin-top: 1rem;
 }
@@ -243,11 +257,9 @@ body {
   margin-top: 1.5rem;
 }
 
-/* Lists should have spacing */
 .markdown-content ul + p,
 .markdown-content ol + p,
 .markdown-content p + ul,
 .markdown-content p + ol {
   margin-top: 1rem;
 }
-

@@ -1,5 +1,6 @@
 import os
 import json
+import re
 from openai import OpenAI
 from typing import List, Dict
 from dotenv import load_dotenv
@@ -101,192 +102,107 @@ def generate_tailored_cv(
     personal_info: Dict,
     relevant_chunks: List[Dict],
     job_description: str,
-    style_guidelines: List[Dict] = None) -> str:
-    """Generate a tailored CV matching Edward's exact style and voice"""
+    style_guidelines: List[Dict] = None) -> Dict:
+    """Generate a tailored CV as structured JSON"""
 
+    # Create a mapping of project titles to their original chunks (for button matching later)
+    chunks_map = {chunk['title']: chunk for chunk in relevant_chunks}
+    
     chunks_text = "\n\n".join([
         f"BLOCK: {chunk['title']} at {chunk['company']}\nCONTENT: {chunk['content']}\nTAGS: {', '.join(chunk['metadata_tags'])}"
         for chunk in relevant_chunks
     ])
 
-    guidelines_text = "\n".join([f"- {g['name']}: {g['description']}" for g in (style_guidelines or [])])
+    system_prompt = """You are Edward Baitsewe's expert CV writer. Return a structured JSON CV.
 
-    system_prompt = """You are Edward Baitsewe's expert CV writer. Your job is to mimic his EXACT writing style and formatting.
+CRITICAL RULES:
+1. Use ONLY the provided candidate data blocks
+2. NO invented credentials, dates, certifications, or company names
+3. NO placeholder dates unless explicitly given
 
-CRITICAL ANTI-FABRICATION RULES:
-1. SOURCE OF TRUTH: Use ONLY the provided candidate data blocks. If information is not explicitly in the data, DO NOT INCLUDE IT.
-2. NO INVENTED CREDENTIALS: Never invent degrees, certifications, company names, dates, or project names.
-3. NO PLACEHOLDER DATES: If dates are not provided, omit them entirely. Do not use "2018-Present" or similar unless explicitly given.       
-4. NO GENERIC CERTIFICATIONS: Do not add "Certified Laravel Developer" or similar unless explicitly listed in the data.
-
-MARKDOWN FORMATTING RULES - CRITICAL:
-1. NEVER use bullet points to introduce sub-projects
-2. Each project is a top-level section with its own **Project Name** header
-3. Projects MUST NOT be indented or nested under other projects
-4. Use horizontal rules (---) to separate major sections, but NOT between individual projects
-5. Leave ONE blank line between projects for separation
-
-WRONG (nested projects):
-**ActuallyFind – DevOps**
-* Infrastructure
-  **Project CRM** 
-  * Features
-
-CORRECT (separate projects):
-**ActuallyFind – DevOps**
-* Infrastructure features
-
-**Project CRM**
-* CRM features
-
-MARKDOWN LINK FORMATTING RULES:
-1. For project titles, use: **[Project Name] – [Type]**
-2. For buttons/actions IMMEDIATELY after a project's content, use: [Label](URL) - e.g., [Website](https://example.com) [GitHub](https://github.com/user/repo)
-3. Place buttons RIGHT AFTER the project's bullet points, BEFORE the next project header
-4. If a URL has already been used for one project, DO NOT include it again for another project
-5. For table URLs, use backticks: `https://example.com` or `user@example.com`
-6. NEVER use bare URLs outside of tables
-
-EDWARD'S CV STYLE FINGERPRINT:
-- Uses emoji section markers: 🔹 for sections
-- Uses contact emojis in header: 📍 📞 📧 🔗 🌐 🐙
-- Quantifies with special notation: "~77×", "sub-500ms", "99.9%"
-- Bold-highlights technologies: **Laravel**, **PostgreSQL + GIS**, **Typesense**
+EDWARD'S VOICE:
+- Developer-centric: "Engineered", "Implemented", "Integrated" (NOT "Spearheaded", "Leveraging")
+- Quantifies with notation: "~77×", "sub-500ms", "99.9%"
+- Bold-highlights tech: **Laravel**, **PostgreSQL + GIS**
+- Concise bullets, no fluff
 - Bullet points start with "* " not "- "
-- Section headers: "## 🔹 Section Name"
-- Uses developer-centric language: "Engineered", "Implemented", "Integrated" (NOT "Spearheaded", "Championed", "Leveraging")
-- Includes demo credentials when relevant
-- CONCISE: One line per bullet when possible, no wordy expansions
 
-FORBIDDEN PHRASES (NEVER USE THESE):
-- "leveraging" / "utilizing" (use specific tech names directly)
-- "demonstrating proficiency" (just state what was done)
-- "showcasing ability" (too meta, just show it)
-- "honed skills" / "instilled" / "equipped me with"
-- Any passive voice construction
+FORBIDDEN PHRASES:
+- "leveraging" / "utilizing"
+- "demonstrating proficiency"
+- "honed skills" / "equipped me with"
+- Any passive voice
 
-STRUCTURE TEMPLATE (Follow this EXACTLY):
-```
-# [Name]
-**[Title]**
-📍 [Location] | 📞 [Phone] | 📧 [Email]
-🔗 [LinkedIn] | 🌐 [Portfolio] | 🐙 [GitHub]
+JSON STRUCTURE (return this exactly):
+{
+  "header": {
+    "name": "Edward Baitsewe",
+    "title": "Full Stack Developer",
+    "location": "Parow, Cape Town",
+    "phone": "+27 78 324 5326",
+    "email": "edward@monatemedia.com",
+    "linkedin": "url",
+    "portfolio": "url",
+    "github": "url"
+  },
+  "summary": "2-3 sentence summary with job-specific middle sentence",
+  "technical_strengths": {
+    "Backend": "PHP (Laravel 9-12), Python, etc",
+    "Frontend": "JavaScript, React, etc",
+    "Infrastructure": "Docker, Nginx, etc",
+    "Specialized": "PostgreSQL + PostGIS, etc"
+  },
+  "key_projects": [
+    {
+      "title": "ActuallyFind – Core Platform",
+      "content": "**Production Marketplace:** description\\n**Tech Stack:** **Laravel 11**, **PostgreSQL**\\n**Search:** details",
+      "demo_table": {
+        "URL": "https://dealership.monatemedia.com/",
+        "Email": "user@example.com",
+        "Password": "password",
+        "Test VIN": "AFAVXDL44VR135790"
+      }
+    },
+    {
+      "title": "ActuallyFind – DevOps & Infrastructure",
+      "content": "**Zero-Downtime:** description\\n**Infrastructure:** details"
+    }
+  ],
+  "professional_experience": "**Title** | *Company* | Dates\\n\\n* Achievement 1\\n* Achievement 2",
+  "education": "* **Degree** – Institution\\n* **Certifications:** List"
+}
 
-## 🔹 Summary
-[2-3 sentence punchy summary mentioning years of experience, core tech stack, and key differentiator]
-
----
-
-## 🔹 Core Technical Strengths
-* **Backend:** [List]
-* **Frontend:** [List]
-* **Infrastructure:** [List]
-* **Specialized:** [List]
-
----
-
-## 🔹 Key Projects
-
-**[Project Name A] – [Type]**
-
-* **[Category]:** [Achievement with metrics]
-* **[Category]:** [Achievement with metrics]
-
-[Website](url) [GitHub](url) [Demo](url)
-
-[If demo credentials exist, include table here]
-
-**[Project Name B] – [Type]**
-
-* **[Category]:** [Achievement]
-* **[Category]:** [Achievement]
-
-[GitHub](url) [Live](url)
-
-**[Project Name C] – [Type]**
-
-* **[Category]:** [Achievement]
-
-[GitHub](url)
-
-CRITICAL PROJECT SEPARATION RULES:
-1. Each project MUST start with "**[Project Name]**" on its own line with NO indentation
-2. Project content bullets have NO indentation - everything starts at column 0
-3. Links for Project A come RIGHT AFTER Project A's content, BEFORE the next project header
-4. NEVER combine multiple projects under one header
-5. Add ONE blank line between projects for separation
-6. If a link URL has already been used for one project, do NOT include it again for another project
-7. Each project stands alone - no nesting, no grouping under bullets
-
----
-
-## 🔹 Professional Experience
-
-**[Title]** | *[Company]* | [Dates if provided]
-
-* [Achievement bullet points using Edward's voice]
-
----
-
-## 🔹 Education
-
-* **[Degree]** – [Institution]
-* **Online Certifications:** [List]
-```
-
-VOICE EXAMPLES (Learn the pattern, don't copy):
-
-BAD: "Leveraging Laravel and PostgreSQL, I demonstrated proficiency in building scalable systems"
-GOOD: "Engineered a high-performance marketplace using **Laravel** and **PostgreSQL + GIS**"
-
-BAD: "Utilized modern DevOps practices to improve deployment efficiency"
-GOOD: "Implemented a zero-downtime **Blue/Green deployment** strategy via GitHub Actions"
-
-BAD: "Optimized image processing to enhance application performance"
-GOOD: "Achieved ~77× image compression (1.7MB to 22KB WebP)"
-
-SUMMARY TAILORING RULE:
-The summary should be MOSTLY fixed but with ONE sentence tailored to the job. Structure:
-- Sentence 1: Years of experience + core tech (always the same)
-- Sentence 2: Specific expertise relevant to THIS job (tailored)
-- Sentence 3: Professional background differentiator (always the same)
-
-Example for a Laravel/Marketplace role:
-"Full stack developer with 5 years of experience building and deploying scalable webapps. Expert in the **Laravel** ecosystem with a deep focus on search optimization, geospatial data, and CI/CD automation. Former financial advisor with over a decade track record of high-stakes stakeholder management and client service excellence."
+IMPORTANT:
+- Each key_projects entry has "title" matching EXACTLY the block title from source data
+- "content" is markdown WITHOUT project title (title is separate)
+- Use \\n for line breaks in content
+- Bold tech with **technology**
+- demo_table is optional, only if demo credentials exist in source
+- Keep content concise - one line per bullet when possible
 """
 
     user_prompt = f"""
 CANDIDATE DATA:
-Name: {personal_info.get('name')}
-Email: {personal_info.get('email')}
-Phone: {personal_info.get('phone')}
-Location: {personal_info.get('location')}
-LinkedIn: {personal_info.get('linkedin')}
-GitHub: {personal_info.get('github')}
-Portfolio: {personal_info.get('portfolio')}
-Summary: {personal_info.get('summary')}
+{json.dumps(personal_info, indent=2)}
 
-EXPERIENCE BLOCKS (USE ONLY THIS DATA - DO NOT INVENT ANYTHING):
+EXPERIENCE BLOCKS:
 {chunks_text}
 
 TARGET JOB:
 {job_description}
 
-STYLE GUIDELINES:
-{guidelines_text}
+INSTRUCTIONS:
+1. Extract exact contact info from personal data (don't omit portfolio!)
+2. Tailor summary middle sentence to job (keep first and last sentences consistent)
+3. For each experience block, create a key_projects entry with:
+   - title: EXACT block title (e.g., "ActuallyFind – Core Platform")
+   - content: markdown description (no title, just bullet points)
+   - demo_table: only if demo credentials exist in source
+4. Keep technical_strengths consistent but prioritize job-relevant tech
+5. Extract professional_experience and education from blocks
+6. Be concise - match Edward's punchy style
 
-CRITICAL INSTRUCTIONS:
-1. Include ALL contact links in the header (LinkedIn, Portfolio, GitHub) - DO NOT OMIT THE PORTFOLIO URL
-2. In the Summary, identify the 1-2 most relevant aspects of the job and highlight those specific skills
-3. For each project, use the EXACT formatting from the source blocks - don't expand or reword
-4. If a source block includes links or demo credentials, INCLUDE THEM VERBATIM immediately after that project's content
-5. Keep button links with their respective projects - never move them to the bottom
-6. If a URL has already been used for one project, do NOT include it again for another project
-7. Keep bullet points CONCISE - one line when possible
-8. NO PASSIVE VOICE - use direct action verbs
-9. Extract education from the "Education & Certifications" block if present
-10. Prioritize projects by relevance to this specific job
-11. NEVER nest projects under other projects - each project is its own top-level section
+Return ONLY valid JSON.
 """
 
     try:
@@ -296,11 +212,18 @@ CRITICAL INSTRUCTIONS:
                 {"role": "system", "content": system_prompt},
                 {"role": "user", "content": user_prompt}
             ],
-            temperature=0.2
+            temperature=0.2,
+            response_format={"type": "json_object"}
         )
-        return response.choices[0].message.content
+        cv_data = json.loads(response.choices[0].message.content)
+        
+        # Add source_chunks mapping for frontend button matching
+        cv_data["_source_chunks"] = chunks_map
+        
+        return cv_data
     except Exception as e:
-        return f"Error: {str(e)}"
+        print(f"Error generating CV: {e}")
+        return {"error": str(e)}
 
 def generate_cover_letter(
     personal_info: Dict,
@@ -392,7 +315,7 @@ JOB DESCRIPTION:
 INSTRUCTIONS:
 1. HOOK: Identify their technical DNA. Open with domain knowledge.
 2. DNA MATCH: Find Edward's project that matches their DNA. Draw SPECIFIC technical parallels using ONLY skills from the candidate's actual skills list.
-3. BONUS SKILLS: Quote "Bonus" if they use that word. Be HONEST - if the candidate has the skill, show concrete examples. If not, acknowledge transferable experience.
+3. BONUS SKILLS: Quote "Bonus" if they use that word. Be HONEST - if the candidate has the skill, show concrete examples. If not, acknowledge transferable skills.
 4. NEVER claim expertise in technologies not in the candidate's skills list.
 5. PROFESSIONAL MATURITY: Mention the 10-year financial services background.
 6. FORWARD-LOOKING: If there are skill gaps, show enthusiasm to learn. If skills match well, express excitement about contributing.

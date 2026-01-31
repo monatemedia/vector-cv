@@ -150,7 +150,7 @@ git push origin v1.0.0
 
 ```
 
-## Reusing Annotated Tags From Failed Deployments
+### Reusing Annotated Tags From Failed Deployments
 
 ```bash
 # Delete the failed tag

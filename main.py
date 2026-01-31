@@ -5,7 +5,7 @@ from fastapi.responses import FileResponse
 from sqlalchemy.orm import Session
 from sqlalchemy import desc
 from pydantic import BaseModel, validator
-from typing import List, Optional, Dict
+from typing import Any, List, Optional, Dict
 from datetime import datetime, timedelta
 import uuid
 import os
@@ -180,7 +180,7 @@ class JobApplicationCreate(BaseModel):
     job_title: str
     raw_spec: str
     job_url: Optional[str] = None
-    
+
     @validator('company_name', 'job_title')
     def sanitize_text_fields(cls, v):
         if v:
@@ -191,7 +191,7 @@ class JobApplicationCreate(BaseModel):
             # Limit length
             return v[:200]
         return v
-    
+
     @validator('job_url')
     def sanitize_url(cls, v):
         if v:
@@ -200,7 +200,7 @@ class JobApplicationCreate(BaseModel):
             # Limit length
             return v[:500]
         return v
-    
+
     @validator('raw_spec')
     def sanitize_spec(cls, v):
         if v:
@@ -219,7 +219,7 @@ class JobApplicationResponse(BaseModel):
     id: uuid.UUID
     company_name: str
     job_title: str
-    generated_cv: Optional[str]
+    generated_cv: Optional[Any] = None
     generated_cover_letter: Optional[str]
     skills_gap_report: Optional[Dict]
     status: ApplicationStatus
@@ -415,10 +415,10 @@ def update_experience_block(
     block = db.query(ExperienceBlock).filter(ExperienceBlock.id == block_id).first()
     if not block:
         raise HTTPException(status_code=404, detail="Experience block not found")
-    
+
     # Update fields that are provided
     update_data = exp.dict(exclude_unset=True)
-    
+
     # Regenerate embedding if content changed
     regenerate_embedding = False
     for key, value in update_data.items():
@@ -426,14 +426,14 @@ def update_experience_block(
             setattr(block, key, BlockType(value))
         else:
             setattr(block, key, value)
-        
+
         if key == "content":
             regenerate_embedding = True
-    
+
     if regenerate_embedding:
         combined_text = f"{block.title} at {block.company}: {block.content} Keywords: {', '.join(block.metadata_tags or [])}"
         block.embedding = generate_embedding(combined_text)
-    
+
     block.updated_at = datetime.utcnow()
     db.commit()
     db.refresh(block)
@@ -450,17 +450,17 @@ def list_experience_blocks(
 ):
     """List experience blocks with optional filtering"""
     query = db.query(ExperienceBlock)
-    
+
     # Apply filters
     if block_type:
         try:
             query = query.filter(ExperienceBlock.block_type == BlockType(block_type))
         except ValueError:
             pass  # Invalid block type, ignore filter
-    
+
     if priority:
         query = query.filter(ExperienceBlock.priority == priority)
-    
+
     if search:
         search_term = f"%{search}%"
         query = query.filter(
@@ -468,7 +468,7 @@ def list_experience_blocks(
             (ExperienceBlock.company.ilike(search_term)) |
             (ExperienceBlock.content.ilike(search_term))
         )
-    
+
     return query.order_by(desc(ExperienceBlock.created_at)).all()
 
 @app.get("/api/experience-blocks/{block_id}",
@@ -553,10 +553,13 @@ def create_job_application(
         # We DON'T log usage here, so the user keeps their credit
         raise HTTPException(status_code=500, detail="AI generation failed. Please try again; your daily limit was not affected.")
 
+    # cv is now a structured dict — docx generator expects a string
+    cv_as_string = json.dumps(cv, indent=2) if isinstance(cv, dict) else cv
+
     # Generate Word documents
     print(f"📄 Generating Word documents...")
     try:
-        cv_docx_path = generate_cv_docx(cv, app_data.company_name, app_data.job_title, OUTPUT_DIR)
+        cv_docx_path = generate_cv_docx(cv_as_string, app_data.company_name, app_data.job_title, OUTPUT_DIR)
         cover_docx_path = generate_cover_letter_docx(cover_letter, app_data.company_name, app_data.job_title, OUTPUT_DIR)
         print(f"✅ Word documents generated")
     except Exception as e:
@@ -569,7 +572,7 @@ def create_job_application(
         job_title=app_data.job_title,
         raw_spec=app_data.raw_spec,
         job_url=app_data.job_url,
-        generated_cv=cv,
+        generated_cv=json.dumps(cv) if isinstance(cv, dict) else cv,  # serialize dict → TEXT for DB
         generated_cover_letter=cover_letter,
         skills_gap_report=skills_gap,
         status=ApplicationStatus.DRAFT
@@ -578,10 +581,24 @@ def create_job_application(
     db.commit()
     db.refresh(db_app)
 
-    # Add docx paths to response
-    response = JobApplicationResponse.from_orm(db_app)
-    response.cv_docx_path = cv_docx_path
-    response.cover_letter_docx_path = cover_docx_path
+    # Deserialize cv back to dict for the frontend, parse skills_gap if it's a string
+    cv_for_response = json.loads(db_app.generated_cv) if isinstance(db_app.generated_cv, str) else db_app.generated_cv
+    skills_gap_for_response = json.loads(db_app.skills_gap_report) if isinstance(db_app.skills_gap_report, str) else db_app.skills_gap_report
+
+    response = JobApplicationResponse(
+        id=db_app.id,
+        company_name=db_app.company_name,
+        job_title=db_app.job_title,
+        generated_cv=cv_for_response,
+        generated_cover_letter=db_app.generated_cover_letter,
+        skills_gap_report=skills_gap_for_response,
+        status=db_app.status,
+        notes=db_app.notes,
+        applied_date=db_app.applied_date,
+        created_at=db_app.created_at,
+        cv_docx_path=cv_docx_path,
+        cover_letter_docx_path=cover_docx_path
+    )
 
     print(f"✅ Application created successfully\n")
     return response
@@ -598,14 +615,14 @@ def update_application(
     app = db.query(JobApplication).filter(JobApplication.id == application_id).first()
     if not app:
         raise HTTPException(status_code=404, detail="Application not found")
-    
+
     update_data = app_update.dict(exclude_unset=True)
     for key, value in update_data.items():
         if key == "status" and value:
             setattr(app, key, ApplicationStatus(value))
         else:
             setattr(app, key, value)
-    
+
     app.updated_at = datetime.utcnow()
     db.commit()
     db.refresh(app)
@@ -620,13 +637,13 @@ def list_applications(
 ):
     """List applications with optional status filter"""
     query = db.query(JobApplication)
-    
+
     if status:
         try:
             query = query.filter(JobApplication.status == ApplicationStatus(status))
         except ValueError:
             pass  # Invalid status, ignore filter
-    
+
     return query.order_by(desc(JobApplication.created_at)).all()
 
 # Download endpoints for Word documents
@@ -693,10 +710,10 @@ def export_all_data(db: Session = Depends(get_db)):
     """Export all personal info and experience blocks as JSON"""
     personal_info = db.query(PersonalInfo).first()
     experience_blocks = db.query(ExperienceBlock).all()
-    
+
     if not personal_info:
         raise HTTPException(status_code=404, detail="No personal info found")
-    
+
     personal_dict = {
         "name": personal_info.name,
         "email": personal_info.email,
@@ -707,7 +724,7 @@ def export_all_data(db: Session = Depends(get_db)):
         "portfolio": personal_info.portfolio,
         "summary": personal_info.summary
     }
-    
+
     blocks_list = [
         {
             "title": block.title,
@@ -719,7 +736,7 @@ def export_all_data(db: Session = Depends(get_db)):
         }
         for block in experience_blocks
     ]
-    
+
     return DataExportResponse(
         personal_info=personal_dict,
         experience_blocks=blocks_list
@@ -739,7 +756,7 @@ def import_all_data(data: DataImportRequest, db: Session = Depends(get_db)):
         else:
             db_info = PersonalInfo(**data.personal_info)
             db.add(db_info)
-        
+
         # Import experience blocks
         imported_count = 0
         for block_data in data.experience_blocks:
@@ -747,17 +764,17 @@ def import_all_data(data: DataImportRequest, db: Session = Depends(get_db)):
             existing_block = db.query(ExperienceBlock).filter(
                 ExperienceBlock.title == block_data["title"]
             ).first()
-            
+
             # Prepare embedding
             combined_text = f"{block_data['title']} at {block_data.get('company', '')}: {block_data['content']} Keywords: {', '.join(block_data.get('tags', []))}"
             embedding = generate_embedding(combined_text)
-            
+
             if existing_block:
                 # Update existing block
                 existing_block.company = block_data.get("company")
                 existing_block.content = block_data["content"]
                 existing_block.metadata_tags = block_data.get("tags", [])
-                existing_block.block_type = BlockType(block_data.get("block_type", "supporting_project"))
+                existing_block.block_type = BlockType(block_data.get("block_type", "supporting_project"))        
                 existing_block.priority = block_data.get("priority", "3")
                 existing_block.embedding = embedding
                 existing_block.updated_at = datetime.utcnow()
@@ -773,15 +790,15 @@ def import_all_data(data: DataImportRequest, db: Session = Depends(get_db)):
                     embedding=embedding
                 )
                 db.add(new_block)
-            
+
             imported_count += 1
-        
+
         db.commit()
         return {
             "message": "Import successful",
             "imported_blocks": imported_count
         }
-    
+
     except Exception as e:
         db.rollback()
         raise HTTPException(status_code=500, detail=f"Import failed: {str(e)}")

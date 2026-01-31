@@ -6,9 +6,49 @@ import {
   Briefcase,
 } from "lucide-react";
 import ContentRenderer from "./ContentRenderer";
+import StructuredCVRenderer from "./StructuredCVRenderer";
 import DownloadDropdown from "./DownloadDropdown";
 
+// Safely extract text from a recommendation item.
+// GPT returns these in inconsistent shapes across runs. Observed keys:
+//   plain string
+//   { skill: "Symfony", action: "Consider a short course..." }  ← current shape
+//   { details: "..." }
+//   { recommendation: "..." }
+//   { description: "..." }
+// When skill + action are both present, render as a React node with the
+// skill name highlighted so it reads naturally. Otherwise fall back.
+function getRecommendationText(rec) {
+  if (typeof rec === "string") return rec;
+  if (typeof rec === "object" && rec !== null) {
+    // Best case: skill label + action sentence — format as readable line
+    if (rec.skill && rec.action) {
+      return (
+        <>
+          <strong className="text-[#C6F486]">{rec.skill}:</strong> {rec.action}
+        </>
+      );
+    }
+    // Single-value fallbacks in priority order
+    return (
+      rec.action ||
+      rec.details ||
+      rec.recommendation ||
+      rec.description ||
+      rec.text ||
+      JSON.stringify(rec)
+    );
+  }
+  return String(rec);
+}
+
 export default function Results({ result, apiUrl }) {
+  // Check if CV is structured JSON or markdown
+  const isStructuredCV =
+    typeof result.generated_cv === "object" &&
+    result.generated_cv !== null &&
+    !result.generated_cv.error;
+
   return (
     <div className="max-w-6xl mx-auto space-y-6">
       {/* Success Message */}
@@ -86,7 +126,7 @@ export default function Results({ result, apiUrl }) {
                   >
                     <div className="w-1.5 h-1.5 bg-[#ADB5D6] rounded-full mt-2 shrink-0"></div>
                     <span className="break-words">
-                      {typeof rec === "string" ? rec : rec.details}
+                      {getRecommendationText(rec)}
                     </span>
                   </div>
                 ))}
@@ -112,7 +152,11 @@ export default function Results({ result, apiUrl }) {
         </div>
         <div className="bg-white/5 border border-[#549E06]/30 rounded-lg p-4 sm:p-6">
           <div className="text-sm sm:text-base text-gray-300">
-            <ContentRenderer content={result.generated_cv} />
+            {isStructuredCV ? (
+              <StructuredCVRenderer cvData={result.generated_cv} />
+            ) : (
+              <ContentRenderer content={result.generated_cv} />
+            )}
           </div>
         </div>
       </div>
