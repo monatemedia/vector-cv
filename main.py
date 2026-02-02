@@ -685,6 +685,47 @@ def download_cover_letter(application_id: uuid.UUID, db: Session = Depends(get_d
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Failed to generate Word document: {str(e)}")
 
+# Download endpoints for Markdown documents
+@app.get("/api/download/cv-markdown/{application_id}",
+        dependencies=[Depends(check_general_rate_limit)])
+def download_cv_markdown(application_id: uuid.UUID, db: Session = Depends(get_db)):
+    """Download CV as Markdown document"""
+    app = db.query(JobApplication).filter(JobApplication.id == application_id).first()
+    if not app:
+        raise HTTPException(status_code=404, detail="Application not found")
+
+    # Generate fresh Markdown doc with formatted links
+    try:
+        from docx_generator import generate_cv_markdown
+        md_path = generate_cv_markdown(app.generated_cv, app.company_name, app.job_title, OUTPUT_DIR)
+        return FileResponse(
+            md_path,
+            media_type="text/markdown",
+            filename=f"CV_{app.company_name}_{app.job_title}.md"
+        )
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to generate Markdown document: {str(e)}")
+
+@app.get("/api/download/cover-letter-markdown/{application_id}",
+        dependencies=[Depends(check_general_rate_limit)])
+def download_cover_letter_markdown(application_id: uuid.UUID, db: Session = Depends(get_db)):
+    """Download cover letter as Markdown document"""
+    app = db.query(JobApplication).filter(JobApplication.id == application_id).first()
+    if not app:
+        raise HTTPException(status_code=404, detail="Application not found")
+
+    # Generate fresh Markdown doc with formatted links
+    try:
+        from docx_generator import generate_cover_letter_markdown
+        md_path = generate_cover_letter_markdown(app.generated_cover_letter, app.company_name, app.job_title, OUTPUT_DIR)
+        return FileResponse(
+            md_path,
+            media_type="text/markdown",
+            filename=f"CoverLetter_{app.company_name}_{app.job_title}.md"
+        )
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to generate Markdown document: {str(e)}")
+
 # Style Guidelines
 @app.post("/api/style-guidelines",
           response_model=StyleGuidelineResponse,

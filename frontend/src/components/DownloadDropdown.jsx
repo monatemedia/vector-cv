@@ -14,19 +14,6 @@ export default function DownloadDropdown({
     return `${docType} - ${result.company_name} - ${result.job_title} - Baitsewe, Edward.${format}`;
   };
 
-  const downloadMarkdown = () => {
-    const content =
-      type === "cv" ? result.generated_cv : result.generated_cover_letter;
-    const blob = new Blob([content], { type: "text/markdown" });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = getFilename("md");
-    a.click();
-    URL.revokeObjectURL(url);
-    setIsOpen(false);
-  };
-
   const downloadWord = async () => {
     try {
       const endpoint = type === "cv" ? "cv" : "cover-letter";
@@ -46,6 +33,29 @@ export default function DownloadDropdown({
     } catch (error) {
       console.error("Download error:", error);
       alert("Failed to download Word document. Please try again.");
+    }
+    setIsOpen(false);
+  };
+
+  const downloadMarkdown = async () => {
+    try {
+      const endpoint = type === "cv" ? "cv-markdown" : "cover-letter-markdown";
+      const response = await fetch(
+        `${apiUrl}/api/download/${endpoint}/${result.id}`,
+      );
+
+      if (!response.ok) throw new Error("Failed to download");
+
+      const blob = await response.blob();
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = getFilename("md");
+      a.click();
+      URL.revokeObjectURL(url);
+    } catch (error) {
+      console.error("Download error:", error);
+      alert("Failed to download Markdown document. Please try again.");
     }
     setIsOpen(false);
   };
