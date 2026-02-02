@@ -1,25 +1,54 @@
 import os
 import json
 import re
+import time
 from openai import OpenAI
 from typing import List, Dict
 from dotenv import load_dotenv
+from api_logger import get_logger
 
 load_dotenv()
 
 client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
+logger = get_logger()
 
 def generate_embedding(text: str) -> List[float]:
     """Generate embeddings using OpenAI's text-embedding-3-small model"""
+    start_time = time.time()
+    request_id = None
+    
     try:
+        # Log request
+        request_id = logger.log_request(
+            operation="generate_embedding",
+            model="text-embedding-3-small",
+            input_text=text,
+            dimensions=1024
+        )
+        
         response = client.embeddings.create(
             model="text-embedding-3-small",
             input=text,
             dimensions=1024
         )
+        
+        # Log response
+        logger.log_response(request_id, response)
+        
+        # Log timing
+        duration_ms = (time.time() - start_time) * 1000
+        logger.log_summary("generate_embedding", duration_ms)
+        
         return response.data[0].embedding
+        
     except Exception as e:
         print(f"Error generating embedding: {e}")
+        
+        # Log error
+        if request_id:
+            logger.log_response(request_id, None, error=e)
+        
+        # Fallback to hash-based vector
         import hashlib
         hash_obj = hashlib.sha256(text.encode())
         hash_bytes = hash_obj.digest()
@@ -30,6 +59,9 @@ def generate_embedding(text: str) -> List[float]:
 
 def extract_skills_from_job(job_description: str) -> List[str]:
     """Extract technical skills and technologies from job description"""
+    start_time = time.time()
+    request_id = None
+    
     prompt = f"""Extract ONLY the technical skills, technologies, tools, and frameworks from this job description.
 
     Be specific and include:
@@ -50,20 +82,48 @@ def extract_skills_from_job(job_description: str) -> List[str]:
     """
 
     try:
-        response = client.chat.completions.create(
+        messages = [{"role": "user", "content": prompt}]
+        
+        # Log request
+        request_id = logger.log_request(
+            operation="extract_skills_from_job",
             model="gpt-4-turbo-preview",
-            messages=[{"role": "user", "content": prompt}],
+            messages=messages,
             temperature=0.1,
             response_format={"type": "json_object"}
         )
+        
+        response = client.chat.completions.create(
+            model="gpt-4-turbo-preview",
+            messages=messages,
+            temperature=0.1,
+            response_format={"type": "json_object"}
+        )
+        
+        # Log response
+        logger.log_response(request_id, response)
+        
+        # Log timing
+        duration_ms = (time.time() - start_time) * 1000
+        logger.log_summary("extract_skills_from_job", duration_ms)
+        
         result = json.loads(response.choices[0].message.content)
         return result.get("skills", [])
+        
     except Exception as e:
         print(f"Error extracting skills: {e}")
+        
+        # Log error
+        if request_id:
+            logger.log_response(request_id, None, error=e)
+        
         return []
 
 def analyze_skills_gap(candidate_chunks: List[Dict], job_description: str) -> Dict:
     """Identify skills gaps with technical precision"""
+    start_time = time.time()
+    request_id = None
+    
     chunks_text = "\n\n".join([
         f"**{chunk['title']} at {chunk['company']}**\n{chunk['content']}\nSkills: {', '.join(chunk['metadata_tags'])}"
         for chunk in candidate_chunks
@@ -87,15 +147,43 @@ Return ONLY valid JSON:
 }}"""
 
     try:
-        response = client.chat.completions.create(
+        messages = [
+            {"role": "system", "content": "You are a technical recruiter who values data over fluff."},
+            {"role": "user", "content": prompt}
+        ]
+        
+        # Log request
+        request_id = logger.log_request(
+            operation="analyze_skills_gap",
             model="gpt-4-turbo-preview",
-            messages=[{"role": "system", "content": "You are a technical recruiter who values data over fluff."},
-                      {"role": "user", "content": prompt}],
+            messages=messages,
             temperature=0.2,
             response_format={"type": "json_object"}
         )
+        
+        response = client.chat.completions.create(
+            model="gpt-4-turbo-preview",
+            messages=messages,
+            temperature=0.2,
+            response_format={"type": "json_object"}
+        )
+        
+        # Log response
+        logger.log_response(request_id, response)
+        
+        # Log timing
+        duration_ms = (time.time() - start_time) * 1000
+        logger.log_summary("analyze_skills_gap", duration_ms)
+        
         return json.loads(response.choices[0].message.content)
+        
     except Exception as e:
+        print(f"Error analyzing skills gap: {e}")
+        
+        # Log error
+        if request_id:
+            logger.log_response(request_id, None, error=e)
+        
         return {"error": str(e)}
 
 def generate_tailored_cv(
@@ -104,10 +192,12 @@ def generate_tailored_cv(
     job_description: str,
     style_guidelines: List[Dict] = None) -> Dict:
     """Generate a tailored CV as structured JSON"""
+    start_time = time.time()
+    request_id = None
 
     # Create a mapping of project titles to their original chunks (for button matching later)
     chunks_map = {chunk['title']: chunk for chunk in relevant_chunks}
-    
+
     chunks_text = "\n\n".join([
         f"BLOCK: {chunk['title']} at {chunk['company']}\nCONTENT: {chunk['content']}\nTAGS: {', '.join(chunk['metadata_tags'])}"
         for chunk in relevant_chunks
@@ -206,23 +296,48 @@ Return ONLY valid JSON.
 """
 
     try:
-        response = client.chat.completions.create(
+        messages = [
+            {"role": "system", "content": system_prompt},
+            {"role": "user", "content": user_prompt}
+        ]
+        
+        # Log request
+        request_id = logger.log_request(
+            operation="generate_tailored_cv",
             model="gpt-4-turbo-preview",
-            messages=[
-                {"role": "system", "content": system_prompt},
-                {"role": "user", "content": user_prompt}
-            ],
+            messages=messages,
             temperature=0.2,
             response_format={"type": "json_object"}
         )
-        cv_data = json.loads(response.choices[0].message.content)
         
+        response = client.chat.completions.create(
+            model="gpt-4-turbo-preview",
+            messages=messages,
+            temperature=0.2,
+            response_format={"type": "json_object"}
+        )
+        
+        # Log response
+        logger.log_response(request_id, response)
+        
+        # Log timing
+        duration_ms = (time.time() - start_time) * 1000
+        logger.log_summary("generate_tailored_cv", duration_ms)
+        
+        cv_data = json.loads(response.choices[0].message.content)
+
         # Add source_chunks mapping for frontend button matching
         cv_data["_source_chunks"] = chunks_map
-        
+
         return cv_data
+        
     except Exception as e:
         print(f"Error generating CV: {e}")
+        
+        # Log error
+        if request_id:
+            logger.log_response(request_id, None, error=e)
+        
         return {"error": str(e)}
 
 def generate_cover_letter(
@@ -232,6 +347,8 @@ def generate_cover_letter(
     company_name: str,
     job_title: str) -> str:
     """Generate a cover letter using Edward's 'DNA matching' strategy"""
+    start_time = time.time()
+    request_id = None
 
     chunks_text = "\n\n".join([
         f"PROJECT: {chunk['title']}\nDETAILS: {chunk['content']}"
@@ -247,9 +364,9 @@ def generate_cover_letter(
     system_prompt = """You are Edward Baitsewe's cover letter writer. Your job is to use his "DNA MATCHING" strategy.
 
 CRITICAL SKILLS GAP AWARENESS:
-You must be HONEST about the candidate's skills. Use ONLY skills that appear in the candidate's project tags.
+You must be HONEST about the candidate's skills. Use ONLY skills that appear in the candidate's project tags.    
 NEVER claim proficiency in skills the candidate doesn't have.
-If the job requires skills the candidate lacks, focus on TRANSFERABLE skills and genuine enthusiasm to learn.
+If the job requires skills the candidate lacks, focus on TRANSFERABLE skills and genuine enthusiasm to learn.    
 Be confident about what the candidate CAN do, honest about what they're still developing.
 
 EDWARD'S COVER LETTER VOICE:
@@ -321,20 +438,45 @@ INSTRUCTIONS:
 6. FORWARD-LOOKING: If there are skill gaps, show enthusiasm to learn. If skills match well, express excitement about contributing.
 7. CLOSING: "Thank you for your time and for considering my application. I look forward to discussing how my experience with [specific tech FROM candidate's skills] can contribute to [Company]'s continued success."
 8. Keep under 400 words.
-9. Use bold for technologies (**Laravel**, **Docker**) but ONLY for technologies the candidate actually knows.
+9. Use bold for technologies (**Laravel**, **Docker**) but ONLY for technologies the candidate actually knows.   
 10. NO PASSIVE VOICE
 11. BE HONEST - integrity matters more than claiming false expertise
 """
 
     try:
-        response = client.chat.completions.create(
+        messages = [
+            {"role": "system", "content": system_prompt},
+            {"role": "user", "content": user_prompt}
+        ]
+        
+        # Log request
+        request_id = logger.log_request(
+            operation="generate_cover_letter",
             model="gpt-4-turbo-preview",
-            messages=[
-                {"role": "system", "content": system_prompt},
-                {"role": "user", "content": user_prompt}
-            ],
+            messages=messages,
             temperature=0.4
         )
+        
+        response = client.chat.completions.create(
+            model="gpt-4-turbo-preview",
+            messages=messages,
+            temperature=0.4
+        )
+        
+        # Log response
+        logger.log_response(request_id, response)
+        
+        # Log timing
+        duration_ms = (time.time() - start_time) * 1000
+        logger.log_summary("generate_cover_letter", duration_ms)
+        
         return response.choices[0].message.content
+        
     except Exception as e:
+        print(f"Error generating cover letter: {e}")
+        
+        # Log error
+        if request_id:
+            logger.log_response(request_id, None, error=e)
+        
         return f"Error: {str(e)}"
