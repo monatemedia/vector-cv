@@ -282,12 +282,16 @@ def select_relevant_blocks(job_description: str, db: Session) -> List[Experience
         selected_ids.add(skills_summary.id)
         print(f"✅ Added skills summary")
 
-    # 3. Find blocks matching required skills
+# 3. Find blocks matching required skills (limit to 1-2 supporting projects max)
     skill_matched_blocks = []
     for skill in job_skills:
+        # Stop if we already have 2 skill-matched supporting projects
+        if len(skill_matched_blocks) >= 2:
+            break
+            
         matching_blocks = db.query(ExperienceBlock).filter(
             ExperienceBlock.id.notin_(selected_ids),
-            ExperienceBlock.block_type.in_([BlockType.SUPPORTING_PROJECT, BlockType.PILLAR_PROJECT])
+            ExperienceBlock.block_type == BlockType.SUPPORTING_PROJECT  # Only supporting projects
         ).all()
 
         for block in matching_blocks:
@@ -300,7 +304,7 @@ def select_relevant_blocks(job_description: str, db: Session) -> List[Experience
                     break
 
     selected_blocks.extend(skill_matched_blocks)
-    print(f"✅ Added {len(skill_matched_blocks)} skill-matched projects")
+    print(f"✅ Added {len(skill_matched_blocks)} skill-matched supporting projects (max 2)")
 
     # 4. Vector search for additional projects
     vector_blocks = db.query(ExperienceBlock).filter(
@@ -308,7 +312,7 @@ def select_relevant_blocks(job_description: str, db: Session) -> List[Experience
         ExperienceBlock.block_type == BlockType.SUPPORTING_PROJECT
     ).order_by(
         ExperienceBlock.embedding.cosine_distance(job_embedding)
-    ).limit(3).all()
+    ).limit(2).all()
 
     selected_blocks.extend(vector_blocks)
     for block in vector_blocks:

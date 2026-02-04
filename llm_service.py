@@ -132,7 +132,7 @@ def analyze_skills_gap(candidate_chunks: List[Dict], job_description: str, all_c
     # Add comprehensive skills context if provided
     skills_context = ""
     if all_candidate_skills:
-        skills_context = f"\n\nIMPORTANT - CANDIDATE'S COMPLETE SKILL SET:\nThe candidate also has experience with these skills (may not all be shown in the experience blocks above): {', '.join(all_candidate_skills)}\n"
+        skills_context = f"\n\n⚠️ CRITICAL - CANDIDATE'S COMPLETE SKILL SET ⚠️\nThe candidate HAS these skills (check this list FIRST before marking anything as missing): {', '.join(all_candidate_skills)}\n\nDo NOT mark any of the above skills as 'missing_skills'. They must go in 'matching_skills'.\n"
 
     prompt = f"""You are a Technical Lead analyzing a candidate for a role.
 
