@@ -33,6 +33,7 @@ services:
       volumes:
         - ./my_data:/app/my_data
         - ./generated_docs:/app/generated_docs
+        - ./api_logs:/app/api_logs
 
   streamlit:
     build:

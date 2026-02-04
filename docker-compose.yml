@@ -66,6 +66,7 @@ services:
       - "${DOCKER_BACKEND_PORT:-8200}:8010"
     volumes:
       - generated_docs:/app/generated_docs
+      - api_logs:/app/api_logs
     networks:
       - vector-cv-network
       - proxy-network
@@ -151,6 +152,7 @@ services:
 volumes:
   postgres_data:
   generated_docs:
+  api_logs:
 
 networks:
   vector-cv-network:
