@@ -536,13 +536,22 @@ def create_job_application(
     style_guidelines = db.query(StyleGuideline).filter(StyleGuideline.is_active == "true").all()
     style_dicts = [{"name": sg.name, "description": sg.description} for sg in style_guidelines]
 
+    # Extract all unique skills from ALL experience blocks in database
+    all_blocks = db.query(ExperienceBlock).all()
+    all_skills = set()
+    for block in all_blocks:
+        all_skills.update(block.metadata_tags or [])
+    all_candidate_skills = sorted(list(all_skills))
+    
+    print(f"📊 Candidate has {len(all_candidate_skills)} total skills across all experience blocks")
+
     try:
         print(f"📝 Generating CV with {len(experience_chunks)} blocks...")
-        skills_gap = analyze_skills_gap(experience_chunks, app_data.raw_spec)
+        skills_gap = analyze_skills_gap(experience_chunks, app_data.raw_spec, all_candidate_skills)
         cv = generate_tailored_cv(personal_dict, experience_chunks, app_data.raw_spec, style_dicts)
         cover_letter = generate_cover_letter(
             personal_dict, experience_chunks, app_data.raw_spec,
-            app_data.company_name, app_data.job_title
+            app_data.company_name, app_data.job_title, all_candidate_skills
         )
 
         # 2. SUCCESS! The AI actually worked. Log the usage now.

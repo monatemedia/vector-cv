@@ -119,25 +119,36 @@ def extract_skills_from_job(job_description: str) -> List[str]:
         
         return []
 
-def analyze_skills_gap(candidate_chunks: List[Dict], job_description: str) -> Dict:
+def analyze_skills_gap(candidate_chunks: List[Dict], job_description: str, all_candidate_skills: List[str] = None) -> Dict:
     """Identify skills gaps with technical precision"""
     start_time = time.time()
     request_id = None
-    
+
     chunks_text = "\n\n".join([
         f"**{chunk['title']} at {chunk['company']}**\n{chunk['content']}\nSkills: {', '.join(chunk['metadata_tags'])}"
         for chunk in candidate_chunks
     ])
+    
+    # Add comprehensive skills context if provided
+    skills_context = ""
+    if all_candidate_skills:
+        skills_context = f"\n\nIMPORTANT - CANDIDATE'S COMPLETE SKILL SET:\nThe candidate also has experience with these skills (may not all be shown in the experience blocks above): {', '.join(all_candidate_skills)}\n"
 
     prompt = f"""You are a Technical Lead analyzing a candidate for a role.
 
-CANDIDATE EXPERIENCE:
+CANDIDATE EXPERIENCE (MOST RELEVANT BLOCKS):
 {chunks_text}
+{skills_context}
 
 JOB DESCRIPTION:
 {job_description}
 
 Analyze the skills gap. Be specific about versions and ecosystems (e.g., 'Laravel' vs 'PHP').
+
+IMPORTANT: When checking for matching skills, consider BOTH:
+1. Skills explicitly mentioned in the experience blocks above
+2. Skills listed in the candidate's complete skill set
+
 Return ONLY valid JSON:
 {{
     "missing_skills": [],
@@ -345,7 +356,8 @@ def generate_cover_letter(
     relevant_chunks: List[Dict],
     job_description: str,
     company_name: str,
-    job_title: str) -> str:
+    job_title: str,
+    all_candidate_skills: List[str] = None) -> str:  # ADD THIS PARAMETER
     """Generate a cover letter using Edward's 'DNA matching' strategy"""
     start_time = time.time()
     request_id = None
@@ -355,11 +367,14 @@ def generate_cover_letter(
         for chunk in relevant_chunks[:3]
     ])
 
-    # Extract candidate's actual skills from chunks
+    # Extract candidate's actual skills from chunks (keep this for backward compatibility)
     candidate_tags = []
     for chunk in relevant_chunks:
         candidate_tags.extend(chunk.get('metadata_tags', []))
     candidate_skills = list(set(candidate_tags))  # Remove duplicates
+    
+    # Use all_candidate_skills if provided, otherwise fall back to chunk-based skills
+    skills_to_use = all_candidate_skills if all_candidate_skills else candidate_skills
 
     system_prompt = """You are Edward Baitsewe's cover letter writer. Your job is to use his "DNA MATCHING" strategy.
 
@@ -420,10 +435,10 @@ CANDIDATE: {personal_info.get('name')}
 LOCATION: {personal_info.get('location')}
 JOB: {job_title} at {company_name}
 
-CANDIDATE'S ACTUAL SKILLS (ONLY use these):
-{', '.join(candidate_skills)}
+CANDIDATE'S COMPLETE SKILL SET (from all experience):
+{', '.join(skills_to_use)}
 
-CANDIDATE'S RELEVANT PROJECTS:
+CANDIDATE'S MOST RELEVANT PROJECTS (detailed):
 {chunks_text}
 
 JOB DESCRIPTION:
@@ -431,14 +446,14 @@ JOB DESCRIPTION:
 
 INSTRUCTIONS:
 1. HOOK: Identify their technical DNA. Open with domain knowledge.
-2. DNA MATCH: Find Edward's project that matches their DNA. Draw SPECIFIC technical parallels using ONLY skills from the candidate's actual skills list.
-3. BONUS SKILLS: Quote "Bonus" if they use that word. Be HONEST - if the candidate has the skill, show concrete examples. If not, acknowledge transferable skills.
-4. NEVER claim expertise in technologies not in the candidate's skills list.
+2. DNA MATCH: Find Edward's project that matches their DNA. Draw SPECIFIC technical parallels using ONLY skills from the candidate's complete skill set.
+3. BONUS SKILLS: Quote "Bonus" if they use that word. Be HONEST - if the candidate has the skill (check complete skill set), show concrete examples. If not, acknowledge transferable skills.
+4. NEVER claim expertise in technologies not in the candidate's complete skill set.
 5. PROFESSIONAL MATURITY: Mention the 10-year financial services background.
 6. FORWARD-LOOKING: If there are skill gaps, show enthusiasm to learn. If skills match well, express excitement about contributing.
-7. CLOSING: "Thank you for your time and for considering my application. I look forward to discussing how my experience with [specific tech FROM candidate's skills] can contribute to [Company]'s continued success."
+7. CLOSING: "Thank you for your time and for considering my application. I look forward to discussing how my experience with [specific tech FROM candidate's skill set] can contribute to [Company]'s continued success."
 8. Keep under 400 words.
-9. Use bold for technologies (**Laravel**, **Docker**) but ONLY for technologies the candidate actually knows.   
+9. Use bold for technologies (**Laravel**, **Docker**) but ONLY for technologies in the candidate's complete skill set.
 10. NO PASSIVE VOICE
 11. BE HONEST - integrity matters more than claiming false expertise
 """
