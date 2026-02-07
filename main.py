@@ -192,13 +192,56 @@ class JobApplicationCreate(BaseModel):
             return v[:200]
         return v
 
+class JobApplicationCreate(BaseModel):
+    company_name: str
+    job_title: str
+    raw_spec: str
+    job_url: Optional[str] = None
+
+    @validator('company_name', 'job_title')
+    def sanitize_text_fields(cls, v):
+        if v:
+            # Remove any control characters and excessive whitespace
+            v = re.sub(r'[\x00-\x1f\x7f-\x9f]', '', v)
+            # Normalize whitespace
+            v = ' '.join(v.split())
+            # Limit length
+            return v[:200]
+        return v
+
     @validator('job_url')
     def sanitize_url(cls, v):
         if v:
-            # Basic URL sanitization
             v = v.strip()
-            # Limit length
+            
+            # Clean Indeed URLs - keep only base URL and job ID
+            if 'indeed.com' in v.lower():
+                # Extract the jk parameter (job key)
+                jk_match = re.search(r'[?&]jk=([^&]+)', v)
+                if jk_match:
+                    job_key = jk_match.group(1)
+                    # Extract base domain (handles different country domains like za.indeed.com)
+                    base_domain = re.match(r'(https?://[^/]+)', v)
+                    if base_domain:
+                        return f"{base_domain.group(1)}/viewjob?jk={job_key}"
+            
+            # Clean LinkedIn URLs - keep only job ID
+            elif 'linkedin.com' in v.lower():
+                job_id_match = re.search(r'/jobs/view/(\d+)', v)
+                if job_id_match:
+                    return f"https://www.linkedin.com/jobs/view/{job_id_match.group(1)}"
+            
+            # For other URLs, just limit length
             return v[:500]
+        return v
+
+    @validator('raw_spec')
+    def sanitize_spec(cls, v):
+        if v:
+            # Remove control characters but keep newlines and tabs
+            v = re.sub(r'[\x00-\x08\x0b-\x0c\x0e-\x1f\x7f-\x9f]', '', v)
+            # Limit length to prevent abuse
+            return v[:50000]
         return v
 
     @validator('raw_spec')
