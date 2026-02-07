@@ -687,16 +687,38 @@ def list_applications(
     status: Optional[str] = None,
     db: Session = Depends(get_db)
 ):
-    """List applications with optional status filter"""
     query = db.query(JobApplication)
-
+    
     if status:
         try:
             query = query.filter(JobApplication.status == ApplicationStatus(status))
         except ValueError:
-            pass  # Invalid status, ignore filter
-
-    return query.order_by(desc(JobApplication.created_at)).all()
+            pass
+    
+    apps = query.order_by(desc(JobApplication.created_at)).all()
+    
+    # Deserialize generated_cv for each application
+    result = []
+    for app in apps:
+        cv_for_response = json.loads(app.generated_cv) if isinstance(app.generated_cv, str) else app.generated_cv
+        skills_gap_for_response = json.loads(app.skills_gap_report) if isinstance(app.skills_gap_report, str) else app.skills_gap_report
+        
+        result.append(JobApplicationResponse(
+            id=app.id,
+            company_name=app.company_name,
+            job_title=app.job_title,
+            generated_cv=cv_for_response,
+            generated_cover_letter=app.generated_cover_letter,
+            skills_gap_report=skills_gap_for_response,
+            status=app.status,
+            notes=app.notes,
+            applied_date=app.applied_date,
+            created_at=app.created_at,
+            cv_docx_path=None,
+            cover_letter_docx_path=None
+        ))
+    
+    return result
 
 # Download endpoints for Word documents
 @app.get("/api/download/cv/{application_id}",
