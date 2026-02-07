@@ -104,6 +104,8 @@ echo "Cover letters:" $(grep "generate_cover_letter completed" api_logs/*.log | 
 
 #### Cost Estimation
 
+You can check your account balance at [OpenAI](https://platform.openai.com/settings/organization/billing/overview)
+
 Using GPT-4 Turbo pricing (as of 2024):
 - Input: $10 / 1M tokens
 - Output: $30 / 1M tokens
@@ -155,10 +157,20 @@ cp my_data/my_data.json.example my_data/my_data.json
 
   Open `my_data/my_data.json` and update the file with your data. You may skip this step and use the admin UI later, or use the file you just created for testing.
 
-4. **Launch the Stack:**
+4. **Build and Start the Stack:**
 ```bash
-# Start dev app in detached mode
+# Stop everything (optional)
+docker compose -f docker-compose.dev.yml down
+
+# Rebuild the backend image (optional)
+docker compose -f docker-compose.dev.yml build --no-cache backend
+
+# Start everything
 docker compose -f docker-compose.dev.yml up -d
+
+# Verify your changes are now in the container (optional)
+docker compose exec backend grep -n "validate_technical_strengths(cv_data" llm_service.py
+
 ```
 
   Common extra flags include `--build` to rebuild container.

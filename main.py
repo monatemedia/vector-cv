@@ -548,7 +548,7 @@ def create_job_application(
     try:
         print(f"📝 Generating CV with {len(experience_chunks)} blocks...")
         skills_gap = analyze_skills_gap(experience_chunks, app_data.raw_spec, all_candidate_skills)
-        cv = generate_tailored_cv(personal_dict, experience_chunks, app_data.raw_spec, style_dicts)
+        cv = generate_tailored_cv(personal_dict, experience_chunks, app_data.raw_spec, all_candidate_skills, style_dicts)  # ← ADDED all_candidate_skills
         cover_letter = generate_cover_letter(
             personal_dict, experience_chunks, app_data.raw_spec,
             app_data.company_name, app_data.job_title, all_candidate_skills

@@ -128,7 +128,7 @@ def analyze_skills_gap(candidate_chunks: List[Dict], job_description: str, all_c
         f"**{chunk['title']} at {chunk['company']}**\n{chunk['content']}\nSkills: {', '.join(chunk['metadata_tags'])}"
         for chunk in candidate_chunks
     ])
-    
+
     # Add comprehensive skills context if provided
     skills_context = ""
     if all_candidate_skills:
@@ -192,10 +192,80 @@ Return ONLY valid JSON:
 
         return {"error": str(e)}
 
+def validate_technical_strengths(cv_data: Dict, allowed_skills: List[str]) -> Dict:
+    """
+    Remove any skills from technical_strengths that aren't in allowed_skills.
+    This is a critical anti-hallucination safeguard.
+    """
+    if 'technical_strengths' not in cv_data:
+        return cv_data
+    
+    # Create lowercase set for case-insensitive matching
+    allowed_skills_lower = {s.lower().strip() for s in allowed_skills}
+    
+    # Also create a set of base skill names (without version numbers/parentheticals)
+    allowed_base_skills = set()
+    for skill in allowed_skills:
+        # Extract base name before parentheses or version numbers
+        base = re.split(r'[\(\d]', skill)[0].strip().lower()
+        if base:
+            allowed_base_skills.add(base)
+    
+    fabricated_count = 0
+    
+    for category, skills_str in cv_data['technical_strengths'].items():
+        if not skills_str or not isinstance(skills_str, str):
+            continue
+            
+        # Parse skills from string like "PHP (Laravel 9-12), Python, Node.js"
+        skills = [s.strip() for s in skills_str.split(',')]
+        
+        # Filter to only allowed skills
+        valid_skills = []
+        for skill in skills:
+            # Extract base skill name (before parentheses)
+            base_skill = re.split(r'[\(]', skill)[0].strip()
+            base_skill_lower = base_skill.lower()
+            
+            # Check if skill is in allowed list (exact match or base match)
+            is_valid = False
+            
+            # Check exact match
+            if base_skill_lower in allowed_skills_lower:
+                is_valid = True
+            # Check if any allowed skill contains this skill
+            elif any(base_skill_lower in allowed.lower() for allowed in allowed_skills):
+                is_valid = True
+            # Check if this skill contains any allowed skill
+            elif any(allowed.lower() in base_skill_lower for allowed in allowed_skills):
+                is_valid = True
+            # Check base skill match
+            elif base_skill_lower in allowed_base_skills:
+                is_valid = True
+            
+            if is_valid:
+                valid_skills.append(skill)
+            else:
+                fabricated_count += 1
+                print(f"⚠️ HALLUCINATION DETECTED: Removed fabricated skill '{skill}' from {category}")
+                print(f"   → This skill is NOT in candidate's actual experience")
+        
+        # Update with only valid skills
+        cv_data['technical_strengths'][category] = ', '.join(valid_skills)
+    
+    # Log validation results
+    if fabricated_count > 0:
+        print(f"\n🛡️ ANTI-HALLUCINATION VALIDATION: Removed {fabricated_count} fabricated skill(s)")
+    else:
+        print(f"\n✅ VALIDATION PASSED: No fabricated skills detected")
+    
+    return cv_data
+
 def generate_tailored_cv(
     personal_info: Dict,
     relevant_chunks: List[Dict],
     job_description: str,
+    all_candidate_skills: List[str] = None,
     style_guidelines: List[Dict] = None) -> Dict:
     """Generate a tailored CV as structured JSON"""
     start_time = time.time()
@@ -209,12 +279,52 @@ def generate_tailored_cv(
         for chunk in relevant_chunks
     ])
 
+    # CRITICAL: Extract and validate candidate's complete skill set
+    candidate_tags = []
+    for chunk in relevant_chunks:
+        candidate_tags.extend(chunk.get('metadata_tags', []))
+    
+    # Use provided skills list or fall back to chunk-based extraction
+    skills_to_use = all_candidate_skills if all_candidate_skills else list(set(candidate_tags))
+    
+    # ANTI-HALLUCINATION GUARD: Explicit skills whitelist
+    skills_context = f"""
+⚠️ CRITICAL CONSTRAINT - CANDIDATE'S ACTUAL SKILLS ⚠️
+The candidate's COMPLETE technical skill set is:
+{', '.join(sorted(skills_to_use))}
+
+ABSOLUTE RULES FOR technical_strengths:
+1. ONLY use skills from the above list
+2. NEVER add skills from the job description that aren't listed above
+3. NEVER infer or assume skills not explicitly in the list
+4. If a job-required skill is missing, DO NOT include it in technical_strengths
+5. Better to omit a category entirely than fabricate skills
+6. Organize existing skills by category, but don't create categories for missing skills
+
+CORRECT Example:
+If candidate has: ["PHP", "Laravel", "Python", "React"]
+And job requires: ["PHP", "Node.js", "React", "Angular"]
+✅ CORRECT technical_strengths:
+{{
+  "Backend": "PHP (Laravel)",
+  "Frontend": "React"
+}}
+❌ WRONG - DO NOT DO THIS:
+{{
+  "Backend": "PHP (Laravel), Node.js",  // Node.js is NOT in candidate's skills!
+  "Frontend": "React, Angular"  // Angular is NOT in candidate's skills!
+}}
+
+Remember: Integrity > Appearing qualified for every job
+"""
+
     system_prompt = """You are Edward Baitsewe's expert CV writer. Return a structured JSON CV.
 
 CRITICAL RULES:
 1. Use ONLY the provided candidate data blocks
 2. NO invented credentials, dates, certifications, or company names
 3. NO placeholder dates unless explicitly given
+4. NO fabricated skills - see skills constraint below
 
 EDWARD'S VOICE:
 - Developer-centric: "Engineered", "Implemented", "Integrated" (NOT "Spearheaded", "Leveraging")
@@ -278,6 +388,8 @@ IMPORTANT:
 """
 
     user_prompt = f"""
+{skills_context}
+
 CANDIDATE DATA:
 {json.dumps(personal_info, indent=2)}
 
@@ -294,7 +406,12 @@ INSTRUCTIONS:
    - title: EXACT block title (e.g., "ActuallyFind – Core Platform")
    - content: markdown description (no title, just bullet points)
    - demo_table: only if demo credentials exist in source
-4. Keep technical_strengths consistent but prioritize job-relevant tech
+4. For technical_strengths: 
+   - Extract skills ONLY from the candidate's metadata_tags (listed in CRITICAL CONSTRAINT above)
+   - NEVER add skills from the job description that aren't in the candidate's skill list
+   - NEVER infer skills not explicitly listed
+   - Organize existing skills by category (Backend/Frontend/Infrastructure/Specialized)
+   - If job requires unlisted skills, acknowledge transferable experience in summary instead
 5. Extract professional_experience and education from blocks
 6. Be concise - match Edward's punchy style
 
@@ -332,6 +449,10 @@ Return ONLY valid JSON.
 
         cv_data = json.loads(response.choices[0].message.content)
 
+        # CRITICAL: Validate technical_strengths to remove any hallucinated skills
+        # This is a defense-in-depth measure in case the LLM ignores prompt constraints
+        cv_data = validate_technical_strengths(cv_data, skills_to_use)
+
         # Add source_chunks mapping for frontend button matching
         cv_data["_source_chunks"] = chunks_map
 
@@ -367,7 +488,7 @@ def generate_cover_letter(
     for chunk in relevant_chunks:
         candidate_tags.extend(chunk.get('metadata_tags', []))
     candidate_skills = list(set(candidate_tags))  # Remove duplicates
-    
+
     # Use all_candidate_skills if provided, otherwise fall back to chunk-based skills
     skills_to_use = all_candidate_skills if all_candidate_skills else candidate_skills
 
