@@ -119,6 +119,8 @@ def extract_skills_from_job(job_description: str) -> List[str]:
 
         return []
 
+# Replace your existing analyze_skills_gap function in llm_service.py with this:
+
 def analyze_skills_gap(candidate_chunks: List[Dict], job_description: str, all_candidate_skills: List[str] = None) -> Dict:
     """Identify skills gaps with technical precision"""
     start_time = time.time()
@@ -143,6 +145,19 @@ CANDIDATE EXPERIENCE (MOST RELEVANT BLOCKS):
 JOB DESCRIPTION:
 {job_description}
 
+CRITICAL RULES FOR matching_skills:
+1. ONLY include skills that are EXPLICITLY mentioned in the job description
+2. Check if the candidate has each job-required skill
+3. DO NOT include candidate skills that aren't mentioned in the job description
+4. Focus on what the job ASKS FOR, not everything the candidate knows
+
+Example:
+- Job requires: "PHP, Laravel, MySQL, CodeIgniter"
+- Candidate has: "PHP, Laravel, MySQL, React, Docker, PostgreSQL"
+- ✅ CORRECT matching_skills: ["PHP", "Laravel", "MySQL"]
+- ❌ WRONG matching_skills: ["PHP", "Laravel", "MySQL", "React", "Docker", "PostgreSQL"]
+  (React, Docker, PostgreSQL are NOT in the job description)
+
 Analyze the skills gap. Be specific about versions and ecosystems (e.g., 'Laravel' vs 'PHP').
 Return ONLY valid JSON:
 {{
@@ -154,7 +169,7 @@ Return ONLY valid JSON:
 
     try:
         messages = [
-            {"role": "system", "content": "You are a technical recruiter who values data over fluff."},
+            {"role": "system", "content": "You are a technical recruiter who values data over fluff. Only report skills that are relevant to the job description."},
             {"role": "user", "content": prompt}
         ]
 
