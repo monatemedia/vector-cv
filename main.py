@@ -11,6 +11,8 @@ import uuid
 import os
 import json
 import re
+import asyncio
+from concurrent.futures import ThreadPoolExecutor
 from collections import defaultdict
 from database import get_db, init_db
 from models import (
@@ -39,6 +41,12 @@ def verify_admin_key(auth: HTTPAuthorizationCredentials = Depends(security)):
 # Separate trackers for different tiers
 browse_tracker = defaultdict(list)  # For GET requests
 ai_tracker = defaultdict(list)      # For POST /api/applications
+
+async def run_in_thread(func, *args):
+    """Run a synchronous function in a thread pool"""
+    loop = asyncio.get_event_loop()
+    with ThreadPoolExecutor() as executor:
+        return await loop.run_in_executor(executor, func, *args)
 
 def check_general_rate_limit(request: Request):
     """60 requests per hour for browsing"""
@@ -536,7 +544,7 @@ def delete_experience_block(block_id: uuid.UUID, db: Session = Depends(get_db)):
 
 # Applications
 @app.post("/api/applications", response_model=JobApplicationResponse)
-def create_job_application(
+async def create_job_application(
     app_data: JobApplicationCreate,
     request: Request,
     db: Session = Depends(get_db)):
@@ -579,22 +587,51 @@ def create_job_application(
     style_guidelines = db.query(StyleGuideline).filter(StyleGuideline.is_active == "true").all()
     style_dicts = [{"name": sg.name, "description": sg.description} for sg in style_guidelines]
 
-# Extract all unique skills from ALL experience blocks in database
+    # Extract all unique skills from ALL experience blocks in database
     all_blocks = db.query(ExperienceBlock).all()
     all_skills = set()
     for block in all_blocks:
         all_skills.update(block.metadata_tags or [])
     all_candidate_skills = sorted(list(all_skills))
-    
+
     print(f"📊 Candidate has {len(all_candidate_skills)} total skills across all experience blocks")
 
     try:
         print(f"📝 Generating CV with {len(experience_chunks)} blocks...")
-        skills_gap = analyze_skills_gap(experience_chunks, app_data.raw_spec, all_candidate_skills)
-        cv = generate_tailored_cv(personal_dict, experience_chunks, app_data.raw_spec, all_candidate_skills, style_dicts)  # ← ADDED all_candidate_skills
-        cover_letter = generate_cover_letter(
-            personal_dict, experience_chunks, app_data.raw_spec,
-            app_data.company_name, app_data.job_title, all_candidate_skills
+        
+        # PARALLEL EXECUTION: Run the 3 long operations simultaneously
+        print(f"⚡ Running API calls in parallel...")
+        skills_gap_task = run_in_thread(
+            analyze_skills_gap, 
+            experience_chunks, 
+            app_data.raw_spec, 
+            all_candidate_skills
+        )
+        
+        cv_task = run_in_thread(
+            generate_tailored_cv,
+            personal_dict,
+            experience_chunks,
+            app_data.raw_spec,
+            all_candidate_skills,
+            style_dicts
+        )
+        
+        cover_letter_task = run_in_thread(
+            generate_cover_letter,
+            personal_dict,
+            experience_chunks,
+            app_data.raw_spec,
+            app_data.company_name,
+            app_data.job_title,
+            all_candidate_skills
+        )
+        
+        # Wait for all three to complete
+        skills_gap, cv, cover_letter = await asyncio.gather(
+            skills_gap_task,
+            cv_task,
+            cover_letter_task
         )
 
         # 2. SUCCESS! The AI actually worked. Log the usage now.
@@ -624,7 +661,7 @@ def create_job_application(
         job_title=app_data.job_title,
         raw_spec=app_data.raw_spec,
         job_url=app_data.job_url,
-        generated_cv=json.dumps(cv) if isinstance(cv, dict) else cv,  # serialize dict → TEXT for DB
+        generated_cv=json.dumps(cv) if isinstance(cv, dict) else cv,
         generated_cover_letter=cover_letter,
         skills_gap_report=skills_gap,
         status=ApplicationStatus.DRAFT
