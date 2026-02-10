@@ -87,14 +87,14 @@ def extract_skills_from_job(job_description: str) -> List[str]:
         # Log request
         request_id = logger.log_request(
             operation="extract_skills_from_job",
-            model="gpt-4-turbo-preview",
+            model="gpt-4o-mini",
             messages=messages,
             temperature=0.1,
             response_format={"type": "json_object"}
         )
 
         response = client.chat.completions.create(
-            model="gpt-4-turbo-preview",
+            model="gpt-4o-mini",
             messages=messages,
             temperature=0.1,
             response_format={"type": "json_object"}
@@ -176,14 +176,14 @@ Return ONLY valid JSON:
         # Log request
         request_id = logger.log_request(
             operation="analyze_skills_gap",
-            model="gpt-4-turbo-preview",
+            model="gpt-4o",
             messages=messages,
             temperature=0.2,
             response_format={"type": "json_object"}
         )
 
         response = client.chat.completions.create(
-            model="gpt-4-turbo-preview",
+            model="gpt-4o",
             messages=messages,
             temperature=0.2,
             response_format={"type": "json_object"}

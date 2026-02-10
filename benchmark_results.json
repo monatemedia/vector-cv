@@ -1,0 +1,122 @@
+{
+  "timestamp": "2026-02-10T04:43:28.925579",
+  "models": {
+    "gpt-4-turbo-preview": {
+      "operations": {
+        "extract_skills": {
+          "duration_seconds": 5.24,
+          "input_tokens": 275,
+          "output_tokens": 96,
+          "cost_usd": 0.00563,
+          "success": true,
+          "output_preview": [
+            "PHP",
+            "Laravel",
+            "PostgreSQL",
+            "React",
+            "Vue.js"
+          ]
+        },
+        "analyze_skills_gap": {
+          "duration_seconds": 9.16,
+          "input_tokens": 462,
+          "output_tokens": 253,
+          "cost_usd": 0.01221,
+          "success": true,
+          "matching_skills_count": 14,
+          "missing_skills_count": 3
+        },
+        "generate_cover_letter": {
+          "duration_seconds": 13.34,
+          "input_tokens": 345,
+          "output_tokens": 488,
+          "cost_usd": 0.01809,
+          "success": true,
+          "length_words": 386,
+          "output_preview": "Edward Baitsewe  \n[Edward's Address]  \nCape Town, South Africa  \n[Date]\n\nHiring Manager  \nTechCorp Industries  \n[Company's Address]  \n\nDear Hiring Manager,\n\nI am writing to express my enthusiasm for t..."
+        }
+      },
+      "total_cost_usd": 0.03593,
+      "total_duration_seconds": 27.74,
+      "cost_per_10_applications": 0.3593
+    },
+    "gpt-4o": {
+      "operations": {
+        "extract_skills": {
+          "duration_seconds": 1.32,
+          "input_tokens": 275,
+          "output_tokens": 67,
+          "cost_usd": 0.001358,
+          "success": true,
+          "output_preview": [
+            "PHP",
+            "Laravel",
+            "PostgreSQL",
+            "React",
+            "Vue.js"
+          ]
+        },
+        "analyze_skills_gap": {
+          "duration_seconds": 3.34,
+          "input_tokens": 464,
+          "output_tokens": 156,
+          "cost_usd": 0.00272,
+          "success": true,
+          "matching_skills_count": 12,
+          "missing_skills_count": 3
+        },
+        "generate_cover_letter": {
+          "duration_seconds": 5.98,
+          "input_tokens": 347,
+          "output_tokens": 430,
+          "cost_usd": 0.005168,
+          "success": true,
+          "length_words": 343,
+          "output_preview": "[Your Name]  \n[Your Address]  \nCape Town, South Africa  \n[Your Email]  \n[Your Phone Number]  \n[Date]  \n\nHiring Manager  \nTechCorp Industries  \n[Company Address]  \n\nDear Hiring Manager,\n\nI am writing t..."
+        }
+      },
+      "total_cost_usd": 0.009246,
+      "total_duration_seconds": 10.64,
+      "cost_per_10_applications": 0.0925
+    },
+    "gpt-4o-mini": {
+      "operations": {
+        "extract_skills": {
+          "duration_seconds": 2.12,
+          "input_tokens": 275,
+          "output_tokens": 69,
+          "cost_usd": 8.3e-05,
+          "success": true,
+          "output_preview": [
+            "PHP",
+            "Laravel",
+            "PostgreSQL",
+            "React",
+            "Vue.js"
+          ]
+        },
+        "analyze_skills_gap": {
+          "duration_seconds": 2.88,
+          "input_tokens": 464,
+          "output_tokens": 105,
+          "cost_usd": 0.000133,
+          "success": true,
+          "matching_skills_count": 12,
+          "missing_skills_count": 3
+        },
+        "generate_cover_letter": {
+          "duration_seconds": 9.14,
+          "input_tokens": 347,
+          "output_tokens": 421,
+          "cost_usd": 0.000305,
+          "success": true,
+          "length_words": 332,
+          "output_preview": "[Your Name]  \n[Your Address]  \nCape Town, South Africa  \n[Your Email]  \n[Your Phone Number]  \n[Date]  \n\nHiring Manager  \nTechCorp Industries  \n[Company Address]  \n\nDear Hiring Manager,\n\nI am excited t..."
+        }
+      },
+      "total_cost_usd": 0.000521,
+      "total_duration_seconds": 14.14,
+      "cost_per_10_applications": 0.0052
+    }
+  }
+}

@@ -1,0 +1,42 @@
+================================================================================
+VECTOR CV MODEL BENCHMARK REPORT
+================================================================================
+Timestamp: 2026-02-10T04:43:28.925579
+
+COST COMPARISON (per single CV generation):
+--------------------------------------------------------------------------------
+Model                     Total Cost      10 Apps         Duration  
+--------------------------------------------------------------------------------
+gpt-4-turbo-preview       $0.035930       $0.3593         27.74    s
+gpt-4o                    $0.009246       $0.0925         10.64    s
+gpt-4o-mini               $0.000521       $0.0052         14.14    s
+
+SAVINGS ANALYSIS:
+--------------------------------------------------------------------------------
+gpt-4o: Save $0.2668 (74.3%) per 10 applications
+gpt-4o-mini: Save $0.3541 (98.6%) per 10 applications
+
+OPERATION BREAKDOWN:
+--------------------------------------------------------------------------------
+
+gpt-4-turbo-preview:
+  extract_skills: $0.005630 | 5.24s | 275->96 tokens
+  analyze_skills_gap: $0.012210 | 9.16s | 462->253 tokens
+  generate_cover_letter: $0.018090 | 13.34s | 345->488 tokens
+
+gpt-4o:
+  extract_skills: $0.001358 | 1.32s | 275->67 tokens
+  analyze_skills_gap: $0.002720 | 3.34s | 464->156 tokens
+  generate_cover_letter: $0.005168 | 5.98s | 347->430 tokens
+
+gpt-4o-mini:
+  extract_skills: $0.000083 | 2.12s | 275->69 tokens
+  analyze_skills_gap: $0.000133 | 2.88s | 464->105 tokens
+  generate_cover_letter: $0.000305 | 9.14s | 347->421 tokens
+
+RECOMMENDATIONS:
+--------------------------------------------------------------------------------
+1. [SAFE] Switch extract_skills_from_job to gpt-4o-mini (simple extraction)
+2. [SAFE] Switch analyze_skills_gap to gpt-4o (needs accuracy)
+3. [TEST] Try gpt-4o for generate_cover_letter (review quality)
+4. [KEEP] Leave generate_tailored_cv on gpt-4-turbo-preview (complex)
