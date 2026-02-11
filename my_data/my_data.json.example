@@ -3,58 +3,67 @@
     "name": "Your Full Name",
     "email": "your.email@example.com",
     "phone": "+1 234 567 8900",
-    "location": "City, State/Province, Country",
+    "location": "City, State/Province",
     "linkedin": "https://www.linkedin.com/in/yourprofile",
     "github": "https://github.com/yourusername",
     "portfolio": "https://yourportfolio.com",
-    "summary": "Your professional summary here. This should be a compelling overview of your experience, skills, and career focus."
+    "summary": "A 2-3 sentence professional summary that captures your experience, specializations, and unique value proposition. This should be relatively stable across applications - the middle sentence will be tailored per job."
   },
   "experience_blocks": [
     {
       "title": "Technical Skills Portfolio",
       "company": "Your Name",
-      "content": "**Backend:** List your backend skills here\n**Frontend:** List your frontend skills here\n**Databases:** List database technologies\n**DevOps:** List DevOps tools\n**Methodologies:** List methodologies you follow",
-      "tags": ["Skill1", "Skill2", "Skill3", "Technology1", "Technology2"],
+      "content": "**Backend:** List languages and frameworks (e.g., PHP, Laravel, Python, Django, Node.js)\n**Frontend:** List frontend technologies (e.g., React, Vue.js, Angular, Tailwind CSS)\n**Databases:** List database experience (e.g., PostgreSQL, MySQL, MongoDB, Redis)\n**DevOps & Infrastructure:** List tools (e.g., Docker, Kubernetes, AWS, CI/CD)\n**Specialized:** Any niche expertise (e.g., Machine Learning, Blockchain, GIS, etc.)",
+      "tags": [
+        "PHP",
+        "Python",
+        "JavaScript",
+        "Docker",
+        "PostgreSQL",
+        "React",
+        "AWS",
+        "CI/CD"
+      ],
       "block_type": "skills_summary",
       "priority": "1"
     },
     {
-      "title": "Your Major Project #1",
-      "company": "Company Name or Personal Project",
-      "content": "**Project Overview:** Describe your project here\n**Tech Stack:** Technologies used\n**Key Achievements:** What you accomplished\n**Impact:** The results of your work",
-      "tags": ["Technology1", "Technology2", "Skill1", "Skill2"],
+      "title": "Project Name - Main Feature",
+      "company": "Company or 'Personal Project'",
+      "content": "**Project Overview:** Brief description of what the project does and its impact\n**Tech Stack:** **Laravel 11**, **PostgreSQL**, **React**, **Docker**\n**Key Achievement:** Specific accomplishment with metrics (e.g., '50% performance improvement', '10,000+ users')\n**Technical Challenge:** Describe a complex problem you solved\n**Architecture:** High-level system design decisions\n\n[Demo](https://demo-url.com) [GitHub](https://github.com/user/repo)",
+      "tags": ["Laravel", "PostgreSQL", "React", "Docker", "RESTful API"],
       "block_type": "pillar_project",
       "priority": "1"
     },
     {
-      "title": "Your Major Project #2",
-      "company": "Company Name or Personal Project",
-      "content": "Detailed description of another important project",
-      "tags": ["Technology3", "Technology4", "Skill3"],
+      "title": "Project Name - Infrastructure/DevOps",
+      "company": "Company or 'Personal Project'",
+      "content": "**Deployment Strategy:** How you deploy and manage the application\n**Infrastructure:** Technologies used (Docker, Kubernetes, cloud platforms)\n**Monitoring & Security:** Logging, authentication, SSL, rate limiting\n**Performance Optimization:** Specific improvements made (caching, CDN, image optimization)\n[Demo](https://demo-url.com) [GitHub](https://github.com/user/repo)",
+      "tags": ["Docker", "CI/CD", "AWS", "Nginx", "Security", "Performance"],
       "block_type": "pillar_project",
       "priority": "1"
     },
     {
-      "title": "Supporting Project Example",
-      "company": "Company Name or Personal Project",
-      "content": "Description of a supporting project that demonstrates specific skills",
-      "tags": ["Technology5", "Skill4"],
+      "title": "Supporting Project Name",
+      "company": "Company or 'Personal Project'",
+      "content": "**Project Description:** What does this project do?\n**Key Features:** List 3-5 main features\n**Technologies Used:** **Framework**, **Database**, **Other Tools**\n**Learning Outcome:** What did you learn or demonstrate with this project?\n[GitHub](https://github.com/user/repo)",
+      "tags": ["Technology1", "Technology2", "Technology3"],
       "block_type": "supporting_project",
       "priority": "2"
     },
     {
-      "title": "Job Title",
+      "title": "Job Title - Company Focus",
       "company": "Company Name",
-      "content": "**Key Responsibilities:** What you did in this role\n**Achievements:** What you accomplished\n**Technologies:** What you worked with\n**Duration:** Start Date – End Date (or Present)",
-      "tags": ["Technology6", "Technology7", "Skill5"],
+      "content": "**Primary Responsibilities:** What you did day-to-day\n**Key Projects:** Major projects or initiatives you led\n**Technologies:** Tools and frameworks you used professionally\n**Impact:** Measurable outcomes (revenue, efficiency, user growth)\n**Duration:** Month Year - Month Year (or 'Present')",
+      "tags": ["Technology1", "Technology2", "Technology3"],
       "block_type": "employment",
       "priority": "1"
     },
     {
       "title": "Education & Certifications",
       "company": "Academic Background",
-      "content": "**Degree Name** – Institution Name (Year)\n**Certification Name** – Issuing Organization (Year)\n**Online Certifications:** List relevant online courses or certifications",
-      "tags": ["Education", "Degree Type", "Certification1", "Certification2"],
+      "content": "**Degree Name** - Institution Name (Year)\n**Certifications:** List relevant certifications\n**Online Courses:** Noteworthy technical training (Udemy, Coursera, etc.)",
+      "tags": ["Education", "Certification1", "Certification2"],
       "block_type": "education",
       "priority": "1"
     }

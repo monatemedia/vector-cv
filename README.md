@@ -184,6 +184,135 @@ If skills extraction accuracy drops below 95% or skills gap analysis shows false
 
 ---
 
+## ⚡ Asynchronous LLM Processing
+
+Vector CV uses **parallel execution** for LLM operations to maximize performance and minimize user wait time. Instead of calling OpenAI APIs sequentially, we execute independent operations concurrently.
+
+### Architecture
+
+```python
+# Traditional Sequential Approach (61.9s total)
+skills_gap = analyze_skills_gap()      # Wait 5.7s
+cv = generate_tailored_cv()            # Wait 36.3s  
+cover = generate_cover_letter()        # Wait 16.1s
+
+# Our Parallel Approach (38.5s total - 38% faster)
+tasks = [
+    analyze_skills_gap(),              # Start all
+    generate_tailored_cv(),            # three tasks
+    generate_cover_letter()            # simultaneously
+]
+results = await asyncio.gather(*tasks)  # Wait for slowest only
+```
+
+### Implementation
+
+We use Python's `asyncio` with `ThreadPoolExecutor` to parallelize synchronous OpenAI API calls:
+
+```python
+async def run_in_thread(func, *args):
+    """Run a synchronous function in a thread pool"""
+    loop = asyncio.get_event_loop()
+    with ThreadPoolExecutor() as executor:
+        return await loop.run_in_executor(executor, func, *args)
+```
+
+This allows us to:
+1. **Execute independent LLM calls concurrently** - Skills gap analysis, CV generation, and cover letter generation happen simultaneously
+2. **Reduce total wall-clock time** - Wait only for the slowest operation, not the sum of all operations
+3. **Maintain code simplicity** - Wrap existing synchronous functions without refactoring the LLM service
+
+### Performance Impact
+
+| Metric | Sequential | Parallel | Improvement |
+|--------|-----------|----------|-------------|
+| **Skills Gap Analysis** | 5.74s | 3.10s | Runs concurrently |
+| **CV Generation** | 36.27s | 38.51s | Longest operation sets pace |
+| **Cover Letter** | 16.12s | 10.94s | Runs concurrently |
+| **Total Time** | **58.13s** | **38.51s** | **⬇️ 34% faster** |
+
+The total time is determined by the **slowest operation** (CV generation at ~38s), not the sum of all operations (58s).
+
+### Why This Matters
+
+For users:
+- **Single CV generation:** 58s → 38s (saves 20 seconds)
+- **10 CVs per day:** 9.7 minutes → 6.4 minutes (saves 3.3 minutes)
+- **Better UX:** Faster response time = less waiting, less abandonment
+
+For the system:
+- **Higher throughput:** Can process more requests in parallel
+- **Better resource utilization:** Maximizes CPU usage during I/O-bound operations
+- **No additional cost:** Parallelization is free - we're just optimizing wait time
+
+### Technical Details
+
+**Why use ThreadPoolExecutor instead of pure asyncio?**
+
+The OpenAI Python SDK is synchronous (blocking). We have three options:
+
+1. ❌ **Sequential calls** - Simple but slow (58s)
+2. ❌ **Rewrite with async OpenAI SDK** - Complex, requires refactoring entire `llm_service.py`
+3. ✅ **ThreadPoolExecutor wrapper** - Best of both worlds - keeps simple synchronous code, gets parallel execution
+
+Our approach:
+```python
+# Wrap synchronous calls in threads
+skills_gap_task = run_in_thread(analyze_skills_gap, chunks, spec, skills)
+cv_task = run_in_thread(generate_tailored_cv, info, chunks, spec, skills, styles)
+cover_task = run_in_thread(generate_cover_letter, info, chunks, spec, company, title, skills)
+
+# Execute all concurrently, wait for all to finish
+skills_gap, cv, cover_letter = await asyncio.gather(
+    skills_gap_task,
+    cv_task,
+    cover_task
+)
+```
+
+This gives us true parallelism without async/await complexity in the LLM service layer.
+
+### When Parallelization Helps
+
+✅ **Good candidates for parallelization:**
+- Independent operations (skills gap + CV + cover letter don't depend on each other)
+- I/O-bound operations (waiting for OpenAI API responses)
+- Operations with similar execution times (3-38s range)
+
+❌ **Not parallelized:**
+- Skills extraction (needs to complete before other operations)
+- Dependent operations (cover letter needs job description, which needs skills extraction)
+- CPU-bound operations (our embeddings are fast enough sequentially)
+
+### Monitoring Parallel Execution
+
+API logs show concurrent execution:
+
+```bash
+# All three operations start within milliseconds of each other
+[2026-02-10 03:16:03] analyze_skills_gap started
+[2026-02-10 03:16:03] generate_tailored_cv started     # +0.016s
+[2026-02-10 03:16:03] generate_cover_letter started    # +0.020s
+
+# Complete in parallel (fastest to slowest)
+[2026-02-10 03:16:06] analyze_skills_gap completed in 3098.93ms
+[2026-02-10 03:16:14] generate_cover_letter completed in 10935.90ms
+[2026-02-10 03:16:41] generate_tailored_cv completed in 38509.63ms
+```
+
+Total time: **38.5s** (slowest operation), not 52.5s (sum of all three).
+
+### Future Optimizations
+
+Potential further improvements:
+- **Batch embeddings:** Generate embeddings for all experience blocks in one API call
+- **Streaming responses:** Start displaying CV as it's generated (requires frontend changes)
+- **Caching:** Cache embeddings and common responses (requires Redis)
+
+Current focus: Simplicity and reliability over marginal gains.
+
+---
+
 ## 🚀 Key Features
 
 * ✅ **Semantic Master Profile** – Store your work history as high-dimensional vectors.
@@ -192,6 +321,8 @@ If skills extraction accuracy drops below 95% or skills gap analysis shows false
 * ✅ **Administrative Panel** – Full CRUD interface for experience blocks at `/admin`.
 * ✅ **CI/CD Ready** – Automated deployment to VPS via GitHub Actions and GHCR.
 * ✅ **API Logging** – Comprehensive OpenAI API request/response logging for debugging and cost monitoring.
+
+---
 
 ## 🛠️ Technical Implementation
 
@@ -304,6 +435,8 @@ This project uses a production-grade deployment flow:
 2. **Registry:** Images are versioned and stored in **GitHub Container Registry (GHCR)**.
 3. **CD:** A remote `deploy-prod.sh` script on the VPS handles the container lifecycle, network attachment to the `proxy-network`, and database migrations.
 
+---
+
 ## 📦 Local Deployment To Docker Desktop
 
 1. **Clone the Repository:**
@@ -386,6 +519,8 @@ docker compose -f docker-compose.dev.yml down
 
   Common extra flags include `-v` to remove volumes and `--rmi all` to remove all containers and flush cache     
 
+---
+
 ## 📦 Production Deployment & Configuration
 
 ### GitHub Secrets Required
@@ -434,12 +569,355 @@ git tag -a v1.0.0 -m "Initial production release"
 git push origin v1.0.0
 ```
 
+---
+
 ## 🎨 Workflow
 
 1. **Seed Data:** Input contact details and professional summary.
 2. **Vectorize Experience:** Add work history blocks; the system generates embeddings on save.
 3. **Define Style:** Set guardrails (e.g., "Must follow STAR method").
 4. **Synthesize:** Paste a job description. The RAG engine retrieves relevant vectors and prompts GPT-4o to generate tailored materials.
+
+---
+
+## 🎯 Customizing Vector CV for Your Use
+
+### Important: This Tool Was Built for Edward Baitsewe
+
+Vector CV was **exclusively designed and tuned for Edward Baitsewe's career profile, voice, and job search strategy**. The prompts, selection logic, and writing style are deeply personalized to Edward's:
+
+- **Technical background** (Laravel/Python full-stack development, DevOps, AI integration)
+- **Writing voice** (developer-centric, metric-driven, no corporate fluff)
+- **Career narrative** (financial services background as differentiator, 10+ years experience)
+- **Project portfolio** (specific projects like ActuallyFind, Vector CV, VinScape)
+
+**If you want to use this for yourself, you'll need to customize the prompts and data structure to match YOUR background and voice.**
+
+---
+
+### How Vector CV Works
+
+Understanding the system will help you customize it effectively:
+
+#### 1. **Data Structure** (`my_data.json`)
+
+Your experience is stored as **blocks** with different types:
+
+| Block Type | Priority | Purpose | How It's Used |
+|------------|----------|---------|---------------|
+| `skills_summary` | 1 | Master skills list | **Always included** in every CV |
+| `pillar_project` | 1 | Your best 2-3 projects | **Always included** - these define you |
+| `supporting_project` | 2-5 | Additional projects | **Conditionally included** via vector/skill matching |
+| `employment` | 1 | Work history | **Always included** (most recent) |
+| `education` | 1 | Degrees & certs | **Always included** |
+
+**Each block has:**
+- `content`: Markdown-formatted description
+- `tags`: Technical skills used (critical for matching!)
+- `priority`: Lower = more important (1 is highest)
+
+#### 2. **Hybrid Selection Strategy**
+
+When you paste a job description, the system selects which experience blocks to include using this **3-step process**:
+
+```python
+# Step 1: ALWAYS include these (guaranteed)
+✅ All pillar_project blocks (priority 1)
+✅ Skills summary block
+✅ Most recent employment
+✅ Education block
+
+# Step 2: Skill matching (finds projects with required skills)
+🔍 Extracts skills from job description → ["Python", "Docker", "AWS"]
+🔍 Finds your projects that have these skills in tags
+✅ Includes 3-5 supporting projects with matching skills
+
+# Step 3: Vector similarity (semantic matching)
+🔍 Generates embedding of job description
+🔍 Finds projects with similar semantic meaning (using cosine similarity)
+✅ Includes top 3 vector-matched supporting projects
+```
+
+**Result:** 8-12 blocks total, always including your best work + job-specific matches
+
+#### 3. **Prompt Engineering** (The Secret Sauce)
+
+The LLM prompts are **heavily customized** for Edward. Here's what you need to change:
+
+**CV Generation Prompt** (`llm_service.py`, line ~340):
+```python
+system_prompt = """You are Edward Baitsewe's expert CV writer. Return a structured JSON CV.
+
+CRITICAL RULES:
+1. Use ONLY the provided candidate data blocks
+2. NO invented credentials, dates, certifications, or company names
+3. NO placeholder dates unless explicitly given
+4. NO fabricated skills - see skills constraint below
+
+EDWARD'S VOICE:  # ← CUSTOMIZE THIS FOR YOUR VOICE
+- Developer-centric: "Engineered", "Implemented", "Integrated" (NOT "Spearheaded", "Leveraging")
+- Quantifies with notation: "~77×", "sub-500ms", "99.9%"
+- Bold-highlights tech: **Laravel**, **PostgreSQL + GIS**
+- Concise bullets, no fluff
+- Bullet points start with "* " not "- "
+
+FORBIDDEN PHRASES:  # ← CUSTOMIZE BASED ON YOUR PET PEEVES
+- "leveraging" / "utilizing"
+- "demonstrating proficiency"
+- "honed skills" / "equipped me with"
+- Any passive voice
+```
+
+**Cover Letter Prompt** (`llm_service.py`, line ~540):
+```python
+system_prompt = """You are Edward Baitsewe's cover letter writer. Your job is to use his "DNA MATCHING" strategy.
+
+EDWARD'S COVER LETTER VOICE:  # ← CUSTOMIZE THIS
+- Conversational but professional (peer-to-peer, engineer to engineer)
+- Direct and confident (no hedging with "I believe" or "I think")
+- Specific technical details (actual tech stacks, not "modern practices")
+- Shows domain knowledge (understands their product/challenges)
+- Uses active voice exclusively
+- HONEST about skill gaps while emphasizing transferable experience
+
+FORBIDDEN PHRASES (NEVER USE THESE):  # ← ADD YOUR OWN
+- "vibrant tech scene" / "remarkable journey" / "deeply immersed"
+- "has equipped me with" / "has instilled in" / "has honed"
+- "I've been closely following"
+- "look forward to the possibility of discussing"
+- "contribute meaningfully"
+```
+
+---
+
+### Step-by-Step Customization Guide
+
+#### Step 1: Create Your Data File
+
+1. Copy the template:
+```bash
+cp my_data/my_data.json.example my_data/my_data.json
+```
+
+2. Fill in your personal info:
+```json
+{
+  "personal_info": {
+    "name": "Your Name",
+    "email": "your@email.com",
+    "summary": "Your 2-3 sentence summary highlighting your expertise and value proposition"
+  }
+}
+```
+
+3. **Add your pillar projects** (your 2-3 best projects):
+```json
+{
+  "title": "Your Best Project - Main Feature",
+  "company": "Company or 'Personal Project'",
+  "content": "Description with **bold tech** and metrics",
+  "tags": ["Tag1", "Tag2", "Tag3"],  // ← CRITICAL: Add ALL techs used
+  "block_type": "pillar_project",
+  "priority": "1"
+}
+```
+
+**Pro tip:** The `tags` array is critical - these are what the system searches when matching skills!
+
+4. **Add supporting projects** (priority 2-5 based on importance)
+
+5. **Add employment and education blocks**
+
+#### Step 2: Customize the Prompts
+
+**File:** `llm_service.py`
+
+1. **CV Voice** (line ~340):
+   - Replace "Edward Baitsewe's expert CV writer" with your name
+   - Update "EDWARD'S VOICE" section with your writing style
+   - Update "FORBIDDEN PHRASES" with phrases you hate
+   - Keep the JSON structure - it's what the frontend expects
+
+2. **Cover Letter Voice** (line ~540):
+   - Replace "Edward Baitsewe's cover letter writer" with your name
+   - Update the strategy (Edward uses "DNA MATCHING" - what's yours?)
+   - Update forbidden phrases
+   - Modify the structure if needed (but keep markdown format)
+
+3. **Personal Info** (line ~340 in system_prompt):
+```python
+"header": {
+  "name": "Your Name",  # ← Update default values
+  "title": "Your Title",
+  "location": "Your City",
+  "phone": "Your Phone",
+  "email": "your@email.com",
+  // ...
+}
+```
+
+#### Step 3: Adjust Selection Logic (Optional)
+
+**File:** `main.py`, function `select_relevant_blocks()` (line ~200)
+
+The default logic:
+```python
+# Always include pillar projects (priority 1)
+# Always include skills summary
+# Add 3-5 skill-matched projects
+# Add top 3 vector-matched projects
+# Add most recent employment
+# Add education
+```
+
+You might want to:
+- Increase/decrease number of supporting projects
+- Change priority thresholds
+- Add custom selection rules (e.g., "always include blockchain projects for crypto jobs")
+
+#### Step 4: Test and Iterate
+
+1. **Seed your data:**
+```bash
+docker compose exec backend python seed_data.py my_data/my_data.json
+```
+
+2. **Generate a test CV:**
+   - Paste a real job description
+   - Review the output
+   - Check which blocks were selected (look at backend logs)
+
+3. **Iterate on prompts:**
+   - If the voice is wrong → adjust prompt
+   - If wrong projects selected → check tags and priorities
+   - If hallucinating skills → verify anti-hallucination logic is working
+
+---
+
+### Key Files to Customize
+
+| File | What to Change | Why |
+|------|---------------|-----|
+| `my_data/my_data.json` | Your personal data | This is your professional history |
+| `llm_service.py` (line ~340) | CV generation prompt | Controls writing voice and style |
+| `llm_service.py` (line ~540) | Cover letter prompt | Controls cover letter strategy |
+| `main.py` (line ~200) | Selection logic | Controls which projects appear |
+| `.env` | API keys, rate limits | Your OpenAI key and usage limits |
+
+---
+
+### Understanding Anti-Hallucination Safeguards
+
+The system has **multiple layers** to prevent the AI from inventing skills:
+
+1. **Explicit Skills Whitelist** (line ~365):
+```python
+# The prompt explicitly lists ALL skills you actually have
+skills_context = f"""
+⚠️ CRITICAL CONSTRAINT - CANDIDATE'S ACTUAL SKILLS ⚠️
+The candidate's COMPLETE technical skill set is:
+{', '.join(sorted(skills_to_use))}
+
+ABSOLUTE RULES:
+1. ONLY use skills from the above list
+2. NEVER add skills from the job description that aren't listed above
+```
+
+2. **Post-Generation Validation** (line ~210):
+```python
+# After generating CV, validates every skill in technical_strengths
+cv_data = validate_technical_strengths(cv_data, skills_to_use)
+# Removes any skills not in your tags
+```
+
+3. **Logging** (throughout):
+```python
+# API logger captures all requests/responses
+# Check api_logs/ if you suspect hallucinations
+```
+
+**To make this work for you:**
+- Add comprehensive `tags` to every experience block
+- The system can ONLY use skills that appear in your tags
+- Check API logs if output seems fabricated
+
+---
+
+### Common Customization Scenarios
+
+#### Scenario 1: "I'm a Product Manager, not a developer"
+
+**Changes needed:**
+1. Update `tags` to PM skills (Roadmapping, Stakeholder Management, Analytics)
+2. Rewrite CV prompt to emphasize outcomes over technical details
+3. Change voice from "developer-centric" to "business-focused"
+4. Update forbidden phrases (remove tech-specific ones)
+
+#### Scenario 2: "I want more/fewer projects in output"
+
+**File:** `main.py`, line ~260
+```python
+# Change from 3 to your preferred number
+.limit(3).all()  # ← Increase/decrease vector matches
+
+# Or adjust skill matching loop
+for skill in job_skills[:10]:  # ← Match more/fewer skills
+```
+
+#### Scenario 3: "The voice doesn't sound like me"
+
+**File:** `llm_service.py`, line ~340
+
+Test different voices:
+- **Academic:** "Research-oriented", "Evidence-based", "Peer-reviewed"
+- **Executive:** "Strategic", "Revenue-focused", "Stakeholder-driven"
+- **Creative:** "User-centric", "Design-thinking", "Iterative"
+
+Update forbidden phrases to match your industry.
+
+---
+
+### Pro Tips
+
+1. **Start small:** Begin with 3-5 experience blocks, test, then expand
+2. **Tag everything:** The more tags, the better the matching
+3. **Use priorities wisely:** 1 = always show, 5 = only if highly relevant
+4. **Check API logs:** `api_logs/openai_api_YYYY-MM-DD.log` shows what the AI sees
+5. **Iterate prompts:** The magic is in the prompt - don't be afraid to experiment
+6. **Monitor costs:** Check your OpenAI usage at https://platform.openai.com/usage
+7. **Test edge cases:** Try very different job descriptions to see how selection works
+
+---
+
+### Troubleshooting
+
+**Problem:** Wrong projects being selected  
+**Solution:** Check `tags` array - system matches on these keywords
+
+**Problem:** CV voice sounds generic  
+**Solution:** Update forbidden phrases and add more specific voice guidelines
+
+**Problem:** Skills being fabricated  
+**Solution:** Verify tags are comprehensive, check anti-hallucination logs
+
+**Problem:** Too many/few projects in output  
+**Solution:** Adjust limits in `select_relevant_blocks()` function
+
+**Problem:** Cover letters all sound the same  
+**Solution:** Update cover letter prompt with more specific strategy/examples
+
+---
+
+### Need Help?
+
+1. **Read the prompts:** Understanding how the AI is instructed helps debugging
+2. **Check the logs:** `api_logs/` shows exactly what's being sent to OpenAI
+3. **Test incrementally:** Change one thing at a time, test, iterate
+4. **Review Edward's data:** `my_data/2026.02.05-my_data.json` shows working examples
+
+Remember: This system was optimized for Edward through extensive trial and error. Your results will improve as you tune it to your background and voice!
+
+---
 
 ## 🔍 Debugging & Monitoring
 
@@ -461,6 +939,8 @@ Consider implementing log rotation for production environments:
 # Example: Delete logs older than 30 days (add to crontab)
 0 0 * * * find /path/to/api_logs -name "*.log" -mtime +30 -delete
 ```
+
+---
 
 ## 📚 Additional Documentation
 
