@@ -1,7 +1,7 @@
 from fastapi import FastAPI, Depends, HTTPException, Request
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import FileResponse
+from fastapi.responses import FileResponse, JSONResponse
 from sqlalchemy.orm import Session
 from sqlalchemy import desc
 from pydantic import BaseModel, validator
@@ -395,6 +395,11 @@ def startup_event():
     init_db()
 
 # --- Endpoints ---
+
+# Health check
+@app.get("/health")
+async def health_check():
+    return JSONResponse(content={"status": "ok"}, status_code=200)
 
 @app.get("/", dependencies=[Depends(check_general_rate_limit)])
 def read_root():
