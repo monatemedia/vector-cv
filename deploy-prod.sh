@@ -21,7 +21,8 @@ COUNT=0
 DB_USER=$(grep "^DB_USER=" .env | cut -d '=' -f 2- | tr -d '\r')
 DB_NAME=$(grep "^DB_NAME=" .env | cut -d '=' -f 2- | tr -d '\r')
 
-until docker compose exec -T postgres pg_isready -U "${DB_USER}" -d "${DB_NAME}" > /dev/null 2>&1; do
+until docker compose exec -T postgres \
+    psql -U "${DB_USER}" -d "${DB_NAME}" -c "SELECT 1" -d "${DB_NAME}" > /dev/null 2>&1; do
     COUNT=$((COUNT + 1))
     if [ $COUNT -ge $MAX_RETRIES ]; then
         echo "❌ Error: Database was not ready after 60 seconds."
