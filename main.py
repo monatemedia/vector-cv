@@ -42,11 +42,14 @@ def verify_admin_key(auth: HTTPAuthorizationCredentials = Depends(security)):
 browse_tracker = defaultdict(list)  # For GET requests
 ai_tracker = defaultdict(list)      # For POST /api/applications
 
+# One shared executor for the lifetime of the process.
+# max_workers=3 matches the number of parallel OpenAI calls made during
+# CV generation, so no extra threads are ever created.
+_executor = ThreadPoolExecutor(max_workers=3)
+
 async def run_in_thread(func, *args):
-    """Run a synchronous function in a thread pool"""
-    loop = asyncio.get_event_loop()
-    with ThreadPoolExecutor() as executor:
-        return await loop.run_in_executor(executor, func, *args)
+    """Run a synchronous function in the shared thread pool"""
+    return await asyncio.get_event_loop().run_in_executor(_executor, func, *args)
 
 def check_general_rate_limit(request: Request):
     """60 requests per hour for browsing"""
@@ -333,22 +336,31 @@ def select_relevant_blocks(job_description: str, db: Session) -> List[Experience
         selected_ids.add(skills_summary.id)
         print(f"✅ Added skills summary")
 
-    # 3. Find blocks matching required skills
+    # 3. Find blocks matching required skills.
+    # Load candidate blocks ONCE, then match in Python.
+    candidate_blocks = (
+        db.query(ExperienceBlock)
+        .filter(
+            ExperienceBlock.id.notin_(selected_ids),
+            ExperienceBlock.block_type.in_([
+                BlockType.SUPPORTING_PROJECT,
+                BlockType.PILLAR_PROJECT,
+            ]),
+        )
+        .all()
+    )
+
     skill_matched_blocks = []
     for skill in job_skills:
-        matching_blocks = db.query(ExperienceBlock).filter(
-            ExperienceBlock.id.notin_(selected_ids),
-            ExperienceBlock.block_type.in_([BlockType.SUPPORTING_PROJECT, BlockType.PILLAR_PROJECT])
-        ).all()
-
-        for block in matching_blocks:
+        for block in candidate_blocks:
+            if block.id in selected_ids:
+                continue
             if block.metadata_tags and any(
                 skill.lower() in tag.lower() for tag in block.metadata_tags
             ):
-                if block.id not in selected_ids:
-                    skill_matched_blocks.append(block)
-                    selected_ids.add(block.id)
-                    break
+                skill_matched_blocks.append(block)
+                selected_ids.add(block.id)
+                break
 
     selected_blocks.extend(skill_matched_blocks)
     print(f"✅ Added {len(skill_matched_blocks)} skill-matched projects")
@@ -592,11 +604,15 @@ async def create_job_application(
     style_guidelines = db.query(StyleGuideline).filter(StyleGuideline.is_active == "true").all()
     style_dicts = [{"name": sg.name, "description": sg.description} for sg in style_guidelines]
 
-    # Extract all unique skills from ALL experience blocks in database
-    all_blocks = db.query(ExperienceBlock).all()
+    # Extract all unique skills — select only metadata_tags, not full rows.
+    # Avoids loading 4KB embedding vectors per block just to read tags.
+    from sqlalchemy import select as sa_select
+    tag_rows = db.execute(
+        sa_select(ExperienceBlock.metadata_tags)
+    ).scalars().all()
     all_skills = set()
-    for block in all_blocks:
-        all_skills.update(block.metadata_tags or [])
+    for tags in tag_rows:
+        all_skills.update(tags or [])
     all_candidate_skills = sorted(list(all_skills))
 
     print(f"📊 Candidate has {len(all_candidate_skills)} total skills across all experience blocks")
@@ -647,8 +663,15 @@ async def create_job_application(
         # We DON'T log usage here, so the user keeps their credit
         raise HTTPException(status_code=500, detail="AI generation failed. Please try again; your daily limit was not affected.")
 
+    # Strip _source_chunks before persisting — those blocks already exist in
+    # the database as ExperienceBlock rows. No need to duplicate them here.
+    # We keep a copy in memory for the response object below.
+    cv_for_db = cv.copy() if isinstance(cv, dict) else cv
+    if isinstance(cv_for_db, dict):
+        cv_for_db.pop("_source_chunks", None)
+
     # cv is now a structured dict — docx generator expects a string
-    cv_as_string = json.dumps(cv, indent=2) if isinstance(cv, dict) else cv
+    cv_as_string = json.dumps(cv_for_db, indent=2) if isinstance(cv_for_db, dict) else cv_for_db
 
     # Generate Word documents
     print(f"📄 Generating Word documents...")
@@ -666,7 +689,7 @@ async def create_job_application(
         job_title=app_data.job_title,
         raw_spec=app_data.raw_spec,
         job_url=app_data.job_url,
-        generated_cv=json.dumps(cv) if isinstance(cv, dict) else cv,
+        generated_cv=json.dumps(cv_for_db) if isinstance(cv_for_db, dict) else cv_for_db,
         generated_cover_letter=cover_letter,
         skills_gap_report=skills_gap,
         status=ApplicationStatus.DRAFT
